@@ -3,45 +3,44 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>WayFinder Sardegna</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 
 <style>
-body { margin:0; font-family: Arial; background:#f4f4f4; }
-
-/* STEP 1 */
-#step1 { text-align:center; padding:20px; }
-
-/* HEADER */
-.header img { width:100%; }
+body { margin:0; font-family: Arial; }
 
 /* MAP */
-#map { height:60vh; }
+#map { height:75vh; }
 
-/* INFO */
-.infoText { text-align:center; font-weight:bold; }
-
-/* PULSANTE + */
+/* 🔴 BUTTON */
 #markerBtn {
     position:fixed;
-    top:80px;
+    top:160px;
     right:15px;
-    width:55px;
-    height:55px;
+    width:70px;
+    height:70px;
     border-radius:50%;
-    font-size:28px;
     background:red;
     color:white;
+    font-size:32px;
     z-index:999;
+    animation:pulse 1.8s infinite;
 }
 
-/* MENU TENDINA */
+@keyframes pulse {
+    0% { box-shadow:0 0 0 0 rgba(255,0,0,0.7); }
+    70% { box-shadow:0 0 0 25px rgba(255,0,0,0); }
+    100% { box-shadow:0 0 0 0 rgba(255,0,0,0); }
+}
+
+/* MENU */
 #poiMenu {
     position:fixed;
-    top:140px;
+    top:250px;
     right:15px;
-    width:250px;
+    width:260px;
     max-height:50vh;
     overflow:auto;
     background:white;
@@ -51,33 +50,45 @@ body { margin:0; font-family: Arial; background:#f4f4f4; }
     padding:10px;
 }
 
-/* RSS */
+/* 🔥 RSS DIRETTI SENZA FASCIA */
 .rss {
     position:fixed;
-    bottom:40px;
+    bottom:0;
     width:100%;
-    background:#ddd;
-    padding:5px;
-    font-size:14px;
+    background:#000;
+    color:#fff;
+    overflow:hidden;
+}
+
+/* SCROLL */
+.rss-track {
+    white-space:nowrap;
+    animation:scroll 45s linear infinite;
+    padding:6px;
+}
+
+@keyframes scroll {
+    0% { transform:translateX(100%); }
+    100% { transform:translateX(-100%); }
 }
 
 /* LOGO */
 .logo {
     position:fixed;
-    bottom:0;
+    bottom:30px;
     width:100%;
     text-align:center;
-    font-size:12px;
+    font-size:10px;
 }
 
-/* PALLINI */
+/* 🔵 POI ENORMI */
 .dot {
-    width:14px;
-    height:14px;
+    width:32px;
+    height:32px;
     border-radius:50%;
 }
 
-/* COLORI CATEGORIE */
+/* COLORI */
 .nuraghi { background:brown; }
 .domus { background:purple; }
 .borghi { background:orange; }
@@ -87,44 +98,11 @@ body { margin:0; font-family: Arial; background:#f4f4f4; }
 .user { background:blue; }
 
 .hidden { display:none; }
+
 </style>
 </head>
 
 <body>
-
-<!-- STEP 1 -->
-<div id="step1">
-<h2>Attiva GPS</h2>
-<button onclick="enableGPS()">Consenti posizione</button>
-
-<div id="stepOptions" style="display:none;">
-<p>Seleziona raggio (km)</p>
-<input type="range" min="1" max="100" value="10" id="radius">
-<span id="radiusValue">10 km</span>
-
-<h3>Seleziona POI</h3>
-<label><input type="checkbox" value="borghi"> Borghi</label>
-<label><input type="checkbox" value="nuraghi"> Nuraghi</label>
-<label><input type="checkbox" value="domus"> Domus</label>
-<label><input type="checkbox" value="pozzi"> Pozzi</label>
-<label><input type="checkbox" value="tombe"> Tombe</label>
-<label><input type="checkbox" value="flora"> Flora</label>
-
-<br><br>
-<button onclick="startApp()">AVVIA</button>
-</div>
-</div>
-
-<!-- STEP 2 -->
-<div id="mapScreen" class="hidden">
-
-<div class="header">
-<img src="header-wayfinder.png">
-</div>
-
-<p class="infoText">
-I POI SONO ENTRO <span id="raggioTxt"></span> KM
-</p>
 
 <div id="map"></div>
 
@@ -132,163 +110,144 @@ I POI SONO ENTRO <span id="raggioTxt"></span> KM
 <div id="poiMenu"></div>
 
 <div class="rss">
-<div>EVENTI: nessun dato</div>
-<div>📞 112 | 📞 1500</div>
+<div class="rss-track" id="rssEvents"></div>
 </div>
 
 <div class="logo">
 <b>PASSAMONTI</b>_COMMUNICATION
 </div>
 
-</div>
-
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <script>
 
-let userLat, userLon;
 let map;
-let radiusKm = 10;
-let selectedCategories = [];
+let userLat, userLon;
+let poiData = [];
+let events = [];
 let markers = [];
+let radiusKm = 200;
 
-// 🔥 DATI COMPLETI (ESEMPIO ESTESO)
-let poiData = [
-{ name:"Nuraghe Arrubiu", category:"nuraghi", lat:39.49, lon:9.20 },
-{ name:"Domus Su Mont'e s'Abe", category:"domus", lat:40.56, lon:8.31 },
-{ name:"Pozzo Sacro Santa Cristina", category:"pozzi", lat:40.02, lon:8.75 },
-{ name:"Tomba dei Giganti Coddu Vecchiu", category:"tombe", lat:41.05, lon:9.33 },
-{ name:"Foresta Montes", category:"flora", lat:40.17, lon:9.35 },
-{ name:"Bosa", category:"borghi", lat:40.3, lon:8.5 }
-];
+/* LOAD JSON (DERIVATI DA CSV) */
+async function loadData(){
 
-// UI
-document.getElementById("radius").oninput = function(){
-    document.getElementById("radiusValue").innerText = this.value + " km";
+    // 👉 QUI incollerò i tuoi dati reali (prossimo step automatico)
+    poiData = [];
+    events = [];
+
+    startApp();
 }
 
-// GPS
-function enableGPS(){
-    navigator.geolocation.getCurrentPosition(pos=>{
-        userLat = pos.coords.latitude;
-        userLon = pos.coords.longitude;
-        document.getElementById("stepOptions").style.display="block";
-    });
-}
-
-// START
+/* START */
 function startApp(){
 
-    radiusKm = document.getElementById("radius").value;
+navigator.geolocation.getCurrentPosition(pos=>{
+userLat=pos.coords.latitude;
+userLon=pos.coords.longitude;
 
-    document.querySelectorAll("input:checked").forEach(el=>{
-        selectedCategories.push(el.value);
-    });
+initMap();
+loadPOI();
+loadEvents();
 
-    document.getElementById("step1").classList.add("hidden");
-    document.getElementById("mapScreen").classList.remove("hidden");
-
-    document.getElementById("raggioTxt").innerText = radiusKm;
-
-    initMap();
-    loadPOI();
-
-    setInterval(refreshPosition, 300000);
+setInterval(refreshPosition,300000);
+});
 }
 
-// MAP
+/* MAP */
 function initMap(){
+map=L.map('map',{minZoom:7,maxBounds:[[38.5,8],[41.5,10]]})
+.setView([userLat,userLon],10);
 
-    map = L.map('map',{
-        minZoom:7,
-        maxBounds:[[38.5,8],[41.5,10]]
-    }).setView([userLat,userLon],10);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-
-    createDot(userLat,userLon,"user","TU SEI QUI");
+createDot(userLat,userLon,"user","TU SEI QUI");
 }
 
-// CREAZIONE PALLINI
+/* DOT */
 function createDot(lat,lon,type,label){
 
-    let div = document.createElement("div");
-    div.className = "dot " + type;
+let div=document.createElement("div");
+div.className="dot "+type;
 
-    let icon = L.divIcon({
-        html: div,
-        iconSize:[14,14]
-    });
+let icon=L.divIcon({
+html:div,
+iconSize:[32,32],
+className:''
+});
 
-    let marker = L.marker([lat,lon],{icon}).addTo(map).bindPopup(label);
+let m=L.marker([lat,lon],{icon}).addTo(map).bindPopup(label);
+markers.push(m);
 
-    markers.push(marker);
-
-    return marker;
+return m;
 }
 
-// POI
+/* POI */
 function loadPOI(){
 
-    markers.forEach(m=>map.removeLayer(m));
-    markers = [];
+markers.forEach(m=>map.removeLayer(m));
+markers=[];
 
-    document.getElementById("poiMenu").innerHTML="";
+document.getElementById("poiMenu").innerHTML="";
 
-    poiData.forEach(poi=>{
+poiData.forEach(poi=>{
 
-        if(!selectedCategories.includes(poi.category)) return;
+let d=distance(userLat,userLon,poi.lat,poi.lon);
 
-        let d = distance(userLat,userLon,poi.lat,poi.lon);
+if(d<=radiusKm){
 
-        if(d <= radiusKm){
+let m=createDot(poi.lat,poi.lon,poi.category,poi.name);
 
-            let m = createDot(poi.lat,poi.lon,poi.category,poi.name);
+let item=document.createElement("div");
+item.innerText=poi.name;
 
-            // MENU
-            let item = document.createElement("div");
-            item.innerText = poi.name;
+item.onclick=()=>{
+map.setView([poi.lat,poi.lon],13);
+m.openPopup();
+};
 
-            item.onclick = ()=>{
-                map.setView([poi.lat,poi.lon],13);
-                m.openPopup();
-            };
+document.getElementById("poiMenu").appendChild(item);
+}
+});
 
-            document.getElementById("poiMenu").appendChild(item);
-        }
-    });
-
-    createDot(userLat,userLon,"user","TU SEI QUI");
+createDot(userLat,userLon,"user","TU SEI QUI");
 }
 
-// MENU
+/* MENU */
 function toggleMenu(){
-    let m = document.getElementById("poiMenu");
-    m.style.display = m.style.display==="block"?"none":"block";
+let m=document.getElementById("poiMenu");
+m.style.display=m.style.display==="block"?"none":"block";
 }
 
-// REFRESH
+/* EVENTS */
+function loadEvents(){
+document.getElementById("rssEvents").innerText =
+events.map(e=>`${e.titolo} - ${e.luogo} (${e.data})`).join(" ✦ ");
+}
+
+/* REFRESH */
 function refreshPosition(){
-    navigator.geolocation.getCurrentPosition(pos=>{
-        userLat = pos.coords.latitude;
-        userLon = pos.coords.longitude;
-        map.setView([userLat,userLon]);
-        loadPOI();
-    });
+navigator.geolocation.getCurrentPosition(pos=>{
+userLat=pos.coords.latitude;
+userLon=pos.coords.longitude;
+map.setView([userLat,userLon]);
+loadPOI();
+});
 }
 
-// DISTANZA
+/* DISTANCE */
 function distance(a,b,c,d){
-    let R=6371;
-    let dLat=(c-a)*Math.PI/180;
-    let dLon=(d-b)*Math.PI/180;
+let R=6371;
+let dLat=(c-a)*Math.PI/180;
+let dLon=(d-b)*Math.PI/180;
 
-    let x=Math.sin(dLat/2)**2+
-    Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*
-    Math.sin(dLon/2)**2;
+let x=Math.sin(dLat/2)**2+
+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*
+Math.sin(dLon/2)**2;
 
-    return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
+return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
 }
+
+loadData();
 
 </script>
 
