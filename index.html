@@ -11,13 +11,19 @@
 <style>
 body { margin:0; font-family: Arial; }
 
+/* STEP 1 */
+#step1 {
+    text-align:center;
+    padding:20px;
+}
+
 /* MAP */
 #map { height:75vh; }
 
 /* BUTTON */
 #markerBtn {
     position:fixed;
-    top:160px;
+    top:180px;
     right:15px;
     width:70px;
     height:70px;
@@ -38,7 +44,7 @@ body { margin:0; font-family: Arial; }
 /* MENU */
 #poiMenu {
     position:fixed;
-    top:250px;
+    top:260px;
     right:15px;
     width:260px;
     max-height:50vh;
@@ -80,14 +86,13 @@ body { margin:0; font-family: Arial; }
     font-size:10px;
 }
 
-/* POI GRANDI */
+/* POI */
 .dot {
     width:34px;
     height:34px;
     border-radius:50%;
 }
 
-/* COLORI */
 .nuraghi { background:brown; }
 .domus { background:purple; }
 .borghi { background:orange; }
@@ -96,10 +101,39 @@ body { margin:0; font-family: Arial; }
 .flora { background:darkgreen; }
 .user { background:blue; }
 
+.hidden { display:none; }
+
 </style>
 </head>
 
 <body>
+
+<!-- STEP 1 -->
+<div id="step1">
+<h2>Attiva GPS</h2>
+<button onclick="enableGPS()">Consenti posizione</button>
+
+<div id="options" style="display:none;">
+
+<p>Seleziona raggio (km)</p>
+<input type="range" min="1" max="200" value="50" id="radius">
+<span id="radiusValue">50 km</span>
+
+<h3>Seleziona POI</h3>
+<label><input type="checkbox" value="borghi"> Borghi</label>
+<label><input type="checkbox" value="nuraghi"> Nuraghi</label>
+<label><input type="checkbox" value="domus"> Domus</label>
+<label><input type="checkbox" value="pozzi"> Pozzi</label>
+<label><input type="checkbox" value="tombe"> Tombe</label>
+<label><input type="checkbox" value="flora"> Flora</label>
+
+<br><br>
+<button onclick="startApp()">AVVIA</button>
+</div>
+</div>
+
+<!-- MAP -->
+<div id="mapScreen" class="hidden">
 
 <div id="map"></div>
 
@@ -114,94 +148,89 @@ body { margin:0; font-family: Arial; }
 <b>PASSAMONTI</b>_COMMUNICATION
 </div>
 
+</div>
+
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <script>
 
 let map;
 let userLat, userLon;
+let radiusKm = 50;
+let selectedCategories = [];
 let poiData = [];
 let events = [];
 let markers = [];
-let radiusKm = 200;
 
-/* ===========================
-   🔥 INCOLLA QUI IL CSV POI
-   =========================== */
-
-let csvPOI = `
-NOME,CATEGORIA,LAT,LON
-Nuraghe Arrubiu,nuraghi,39.49,9.20
-Bosa,borghi,40.3,8.5
-`;
-
-/* ===========================
-   🔥 INCOLLA QUI EVENTI
-   =========================== */
-
-let csvEVENTI = `
-TITOLO,LUOGO,DATA
-Mostra archeologica,Cagliari,12 Luglio
-Festival cultura,Nuoro,20 Luglio
-`;
-
-/* ===========================
-   PARSER CSV
-   =========================== */
-
-function parseCSV(csv){
-
-    let rows = csv.trim().split("\n");
-    let headers = rows[0].split(",");
-
-    return rows.slice(1).map(row=>{
-        let values = row.split(",");
-        let obj = {};
-
-        headers.forEach((h,i)=>{
-            obj[h.trim().toLowerCase()] = values[i].trim();
-        });
-
-        return obj;
-    });
+/* SLIDER */
+document.getElementById("radius").oninput = function(){
+document.getElementById("radiusValue").innerText=this.value+" km";
 }
 
-/* LOAD DATA */
-function loadData(){
-
-    let poiRaw = parseCSV(csvPOI);
-
-    poiData = poiRaw.map(p=>({
-        name:p.nome,
-        category:p.categoria,
-        lat:parseFloat(p.lat),
-        lon:parseFloat(p.lon)
-    }));
-
-    let evRaw = parseCSV(csvEVENTI);
-
-    events = evRaw.map(e=>({
-        titolo:e.titolo,
-        luogo:e.luogo,
-        data:e.data
-    }));
-
-    startApp();
+/* GPS */
+function enableGPS(){
+navigator.geolocation.getCurrentPosition(pos=>{
+userLat=pos.coords.latitude;
+userLon=pos.coords.longitude;
+document.getElementById("options").style.display="block";
+});
 }
 
 /* START */
 function startApp(){
 
-navigator.geolocation.getCurrentPosition(pos=>{
-userLat=pos.coords.latitude;
-userLon=pos.coords.longitude;
+radiusKm=document.getElementById("radius").value;
+
+document.querySelectorAll("input:checked").forEach(el=>{
+selectedCategories.push(el.value);
+});
+
+document.getElementById("step1").classList.add("hidden");
+document.getElementById("mapScreen").classList.remove("hidden");
+
+loadData();
+}
+
+/* DATI (INCOLLA QUI I CSV COME PRIMA) */
+let csvPOI = `NOME,CATEGORIA,LAT,LON`;
+let csvEVENTI = `TITOLO,LUOGO,DATA`;
+
+/* PARSER */
+function parseCSV(csv){
+let rows=csv.trim().split("\n");
+let headers=rows[0].split(",");
+
+return rows.slice(1).map(r=>{
+let v=r.split(",");
+let obj={};
+headers.forEach((h,i)=>obj[h.toLowerCase()]=v[i]);
+return obj;
+});
+}
+
+/* LOAD */
+function loadData(){
+
+let p=parseCSV(csvPOI);
+poiData=p.map(x=>({
+name:x.nome,
+category:x.categoria,
+lat:parseFloat(x.lat),
+lon:parseFloat(x.lon)
+}));
+
+let e=parseCSV(csvEVENTI);
+events=e.map(x=>({
+titolo:x.titolo,
+luogo:x.luogo,
+data:x.data
+}));
 
 initMap();
 loadPOI();
 loadEvents();
 
 setInterval(refreshPosition,300000);
-});
 }
 
 /* MAP */
@@ -216,19 +245,13 @@ createDot(userLat,userLon,"user","TU SEI QUI");
 
 /* DOT */
 function createDot(lat,lon,type,label){
-
 let div=document.createElement("div");
 div.className="dot "+type;
 
-let icon=L.divIcon({
-html:div,
-iconSize:[34,34],
-className:''
-});
+let icon=L.divIcon({html:div,iconSize:[34,34],className:''});
 
 let m=L.marker([lat,lon],{icon}).addTo(map).bindPopup(label);
 markers.push(m);
-
 return m;
 }
 
@@ -241,6 +264,8 @@ markers=[];
 document.getElementById("poiMenu").innerHTML="";
 
 poiData.forEach(poi=>{
+
+if(!selectedCategories.includes(poi.category)) return;
 
 let d=distance(userLat,userLon,poi.lat,poi.lon);
 
@@ -271,7 +296,7 @@ m.style.display=m.style.display==="block"?"none":"block";
 
 /* EVENTS */
 function loadEvents(){
-document.getElementById("rssEvents").innerText =
+document.getElementById("rssEvents").innerText=
 events.map(e=>`${e.titolo} - ${e.luogo} (${e.data})`).join(" ✦ ");
 }
 
@@ -285,20 +310,16 @@ loadPOI();
 });
 }
 
-/* DISTANCE */
+/* DIST */
 function distance(a,b,c,d){
 let R=6371;
 let dLat=(c-a)*Math.PI/180;
 let dLon=(d-b)*Math.PI/180;
-
 let x=Math.sin(dLat/2)**2+
 Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*
 Math.sin(dLon/2)**2;
-
 return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
 }
-
-loadData();
 
 </script>
 
