@@ -1,11 +1,8 @@
-<!-- WF_SARDEGNA_V8_FIX_POI_MENU -->
-
 <!DOCTYPE html>
 <html lang="it">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>WayFinder Sardegna</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
@@ -20,7 +17,6 @@ body { margin:0; font-family:Arial; }
   flex-direction:column;
   justify-content:center;
   align-items:center;
-  text-align:center;
 }
 
 #gpsBtn {
@@ -31,68 +27,42 @@ body { margin:0; font-family:Arial; }
   border-radius:10px;
 }
 
-/* FILTRI */
-#filtri {
-  display:flex;
-  flex-wrap:wrap;
-  gap:8px;
-  justify-content:center;
-  margin-top:20px;
-}
-
-.filtro {
-  padding:8px 12px;
-  border-radius:20px;
-  color:white;
-  opacity:0.5;
-}
-
-.filtro.active {
-  opacity:1;
-  border:2px solid black;
-}
-
 /* SCREEN 2 */
 #screen2 { display:none; }
-
 #map { height:100vh; }
 
-/* 🔴 PULSANTE MENU */
+/* PULSANTE ROSSO */
 #menuBtn {
   position:absolute;
   top:20px;
   right:20px;
   background:red;
-  color:white;
-  border-radius:50%;
   width:60px;
   height:60px;
-  font-size:24px;
+  border-radius:50%;
+  color:white;
   display:flex;
   justify-content:center;
   align-items:center;
-  cursor:pointer;
+  font-size:24px;
   z-index:1000;
   animation:pulse 1.5s infinite;
 }
 
 @keyframes pulse {
-  0% { transform:scale(1); }
-  50% { transform:scale(1.1); }
-  100% { transform:scale(1); }
+  0% {transform:scale(1);}
+  50% {transform:scale(1.1);}
+  100% {transform:scale(1);}
 }
 
-/* MENU POI */
 #menuPoi {
   position:absolute;
   top:90px;
   right:20px;
   width:260px;
-  max-height:350px;
+  max-height:400px;
   overflow:auto;
   background:white;
-  border-radius:12px;
-  box-shadow:0 4px 12px rgba(0,0,0,0.3);
   display:none;
   z-index:1000;
 }
@@ -102,79 +72,83 @@ body { margin:0; font-family:Arial; }
   border-bottom:1px solid #eee;
   cursor:pointer;
 }
-
-/* SHEET */
-#sheet {
-  position:fixed;
-  bottom:-100%;
-  width:100%;
-  background:white;
-  padding:15px;
-  transition:0.3s;
-}
-
-#sheet.active { bottom:0; }
-
-.footer {
-  position:fixed;
-  bottom:0;
-  width:100%;
-  text-align:center;
-  font-size:12px;
-  background:white;
-}
 </style>
 </head>
 
 <body>
 
-<!-- SCREEN 1 -->
 <div id="screen1">
-
-<h2>WayFinder Sardegna</h2>
-
-<button id="gpsBtn">Attiva GPS</button>
-
-<div id="filtri">
-  <div class="filtro active" data-cat="nuraghe" style="background:brown">Nuraghi</div>
-  <div class="filtro active" data-cat="borgo" style="background:blue">Borghi</div>
-  <div class="filtro" data-cat="domus" style="background:purple">Domus</div>
-  <div class="filtro" data-cat="tomba" style="background:black">Tombe</div>
-  <div class="filtro" data-cat="fauna" style="background:green">Fauna</div>
-  <div class="filtro" data-cat="pozzo" style="background:orange">Pozzi sacri</div>
+  <h2>WayFinder Sardegna</h2>
+  <button id="gpsBtn">Attiva GPS</button>
 </div>
 
-</div>
-
-<!-- SCREEN 2 -->
 <div id="screen2">
-
-<div id="menuBtn">+</div>
-<div id="menuPoi"></div>
-
-<div id="map"></div>
-
+  <div id="menuBtn">+</div>
+  <div id="menuPoi"></div>
+  <div id="map"></div>
 </div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <script>
 
-// ===== DATI (USA QUI TUTTI I TUOI EXCEL) =====
+// ===== DATASET COMPLETO =====
 const POI = [
-  {nome:"Bosa", lat:40.3, lon:8.5, categoria:"borgo"},
-  {nome:"Castelsardo", lat:40.92, lon:8.71, categoria:"borgo"},
-  {nome:"Su Nuraxi", lat:39.7, lon:9.0, categoria:"nuraghe"},
-  {nome:"Palmavera", lat:40.557, lon:8.319, categoria:"nuraghe"},
-  {nome:"Anghelu Ruju", lat:40.6, lon:8.29, categoria:"domus"},
-  {nome:"Coddu Vecchiu", lat:41.08, lon:9.38, categoria:"tomba"},
-  {nome:"Fenicottero rosa", lat:39.22, lon:9.14, categoria:"fauna"}
+
+/* ===== BORGHI ===== */
+{nome:"Lollove", lat:40.3650, lon:9.3324, categoria:"borgo"},
+{nome:"Tempio Pausania", lat:40.9, lon:9.1, categoria:"borgo"},
+{nome:"Aggius", lat:40.93, lon:8.98, categoria:"borgo"},
+{nome:"Atzara", lat:39.99, lon:9.07, categoria:"borgo"},
+{nome:"Bosa", lat:40.3, lon:8.5, categoria:"borgo"},
+{nome:"Carloforte", lat:39.14, lon:8.3, categoria:"borgo"},
+{nome:"Galtellì", lat:40.39, lon:9.61, categoria:"borgo"},
+{nome:"Laconi", lat:39.85, lon:9.05, categoria:"borgo"},
+{nome:"La Maddalena", lat:41.21, lon:9.41, categoria:"borgo"},
+{nome:"Oliena", lat:40.27, lon:9.4, categoria:"borgo"},
+{nome:"Posada", lat:40.63, lon:9.72, categoria:"borgo"},
+{nome:"Sadali", lat:39.82, lon:9.27, categoria:"borgo"},
+{nome:"Sardara", lat:39.62, lon:8.82, categoria:"borgo"},
+{nome:"Gavoi", lat:40.16, lon:9.2, categoria:"borgo"},
+{nome:"Castelsardo", lat:40.92, lon:8.71, categoria:"borgo"},
+
+/* ===== NURAGHI ===== */
+{nome:"Nuraghe Majori", lat:40.9, lon:9.1, categoria:"nuraghe"},
+{nome:"Nuraghe Palmavera", lat:40.557, lon:8.319, categoria:"nuraghe"},
+{nome:"Santu Antine", lat:40.421, lon:8.735, categoria:"nuraghe"},
+{nome:"Serra Orrios", lat:40.292, lon:9.588, categoria:"nuraghe"},
+{nome:"Nuraghe Losa", lat:40.128, lon:8.82, categoria:"nuraghe"},
+{nome:"Su Nuraxi", lat:39.7, lon:9.0, categoria:"nuraghe"},
+{nome:"Nuraghe Arrubiu", lat:39.66, lon:9.3, categoria:"nuraghe"},
+
+/* ===== TOMBE ===== */
+{nome:"Coddu Vecchiu", lat:41.08, lon:9.38, categoria:"tomba"},
+{nome:"Li Lolghi", lat:41.07, lon:9.37, categoria:"tomba"},
+{nome:"Li Mizzani", lat:41.18, lon:9.38, categoria:"tomba"},
+{nome:"S'Ena e Thomes", lat:40.28, lon:9.58, categoria:"tomba"},
+{nome:"Madau", lat:40.12, lon:9.26, categoria:"tomba"},
+{nome:"Is Concias", lat:39.25, lon:9.22, categoria:"tomba"},
+
+/* ===== DOMUS ===== */
+{nome:"Anghelu Ruju", lat:40.6, lon:8.29, categoria:"domus"},
+{nome:"Sant'Andrea Priu", lat:40.43, lon:8.77, categoria:"domus"},
+{nome:"Montessu", lat:39.11, lon:8.67, categoria:"domus"},
+{nome:"Mesu e Montes", lat:40.67, lon:8.6, categoria:"domus"},
+{nome:"Su Crucifissu Mannu", lat:40.83, lon:8.4, categoria:"domus"},
+
+/* ===== FAUNA ===== */
+{nome:"Fenicottero rosa", lat:39.22, lon:9.14, categoria:"fauna"},
+{nome:"Cervo sardo", lat:39.18, lon:8.93, categoria:"fauna"},
+{nome:"Grifone", lat:40.28, lon:8.47, categoria:"fauna"},
+{nome:"Aquila reale", lat:40.02, lon:9.32, categoria:"fauna"},
+{nome:"Muflone", lat:40.03, lon:9.68, categoria:"fauna"}
+
 ];
 
 // ===== VAR =====
 let map, userMarker;
 let markers = {};
-let categorieAttive = ["nuraghe","borgo"];
+let selected = null;
 
 // ===== COLORI =====
 function colore(cat){
@@ -182,46 +156,27 @@ function colore(cat){
          cat==="domus"?"purple":
          cat==="tomba"?"black":
          cat==="fauna"?"green":
-         cat==="borgo"?"blue":
-         cat==="pozzo"?"orange":"gray";
+         cat==="borgo"?"blue":"gray";
 }
 
-// ===== FILTRI =====
-document.querySelectorAll(".filtro").forEach(btn=>{
-  btn.onclick=()=>{
-    let cat=btn.dataset.cat;
-
-    if(categorieAttive.includes(cat)){
-      categorieAttive=categorieAttive.filter(c=>c!==cat);
-      btn.classList.remove("active");
-    } else {
-      categorieAttive.push(cat);
-      btn.classList.add("active");
-    }
-
-    aggiornaVisibilità();
-  };
-});
-
 // ===== GPS =====
-document.getElementById("gpsBtn").onclick=()=>{
+document.getElementById("gpsBtn").onclick = ()=>{
 
   navigator.geolocation.getCurrentPosition(pos=>{
-
-    let lat=pos.coords.latitude;
-    let lon=pos.coords.longitude;
 
     document.getElementById("screen1").style.display="none";
     document.getElementById("screen2").style.display="block";
 
-    map=L.map('map').setView([lat,lon],10);
+    map = L.map('map').setView([40.1,9],8);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-    // TU SEI QUI
-    userMarker=L.circleMarker([lat,lon],{
+    // utente
+    userMarker = L.circleMarker([pos.coords.latitude,pos.coords.longitude],{
       radius:10,
-      color:"red"
+      color:"red",
+      fillColor:"red",
+      fillOpacity:1
     }).addTo(map).bindPopup("Tu sei qui").openPopup();
 
     caricaPOI();
@@ -230,70 +185,63 @@ document.getElementById("gpsBtn").onclick=()=>{
   });
 };
 
-// ===== CREA POI =====
+// ===== CREA MARKER =====
 function caricaPOI(){
-
   POI.forEach(p=>{
-
-    let m=L.circleMarker([p.lat,p.lon],{
+    let m = L.circleMarker([p.lat,p.lon],{
       radius:6,
-      color:colore(p.categoria)
+      color:colore(p.categoria),
+      fillColor:colore(p.categoria),
+      fillOpacity:1
     }).addTo(map);
 
     markers[p.nome]=m;
 
-    m.on("click",()=>highlightPOI(p));
-  });
-
-}
-
-// ===== VISIBILITÀ =====
-function aggiornaVisibilità(){
-
-  POI.forEach(p=>{
-    let m=markers[p.nome];
-
-    if(categorieAttive.length===0 || categorieAttive.includes(p.categoria)){
-      map.addLayer(m);
-    } else {
-      map.removeLayer(m);
-    }
+    m.on("click",()=>seleziona(p));
   });
 }
 
 // ===== MENU =====
 function creaMenu(){
-
   let menu=document.getElementById("menuPoi");
 
   POI.forEach(p=>{
     let div=document.createElement("div");
     div.className="poi-item";
     div.innerText=p.nome;
-
-    div.onclick=()=>highlightPOI(p);
-
+    div.onclick=()=>seleziona(p);
     menu.appendChild(div);
   });
 }
 
 document.getElementById("menuBtn").onclick=()=>{
   let m=document.getElementById("menuPoi");
-  m.style.display=m.style.display==="none"?"block":"none";
+  m.style.display = m.style.display==="none"?"block":"none";
 };
 
-// ===== HIGHLIGHT =====
-function highlightPOI(p){
+// ===== SELEZIONE =====
+function seleziona(p){
+
+  if(selected){
+    let old=markers[selected.nome];
+    old.setStyle({
+      fillColor:colore(selected.categoria),
+      color:colore(selected.categoria),
+      radius:6
+    });
+  }
 
   let m=markers[p.nome];
 
-  map.setView([p.lat,p.lon],14);
+  map.setView([p.lat,p.lon],13);
 
-  m.setStyle({radius:10,color:"yellow"});
+  m.setStyle({
+    fillColor:"red",
+    color:"red",
+    radius:10
+  });
 
-  setTimeout(()=>{
-    m.setStyle({radius:6,color:colore(p.categoria)});
-  },2000);
+  selected=p;
 }
 
 </script>
