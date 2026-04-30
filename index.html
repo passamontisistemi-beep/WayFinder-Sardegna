@@ -11,15 +11,10 @@
 <style>
 body { margin:0; font-family:Arial; }
 
-/* ===== SCREEN FLOW ===== */
-.screen { display:none; }
-.active { display:block; }
-
-/* ===== SCREEN START ===== */
+/* ===== START ===== */
 #start {
   height:100vh;
   display:flex;
-  flex-direction:column;
   justify-content:center;
   align-items:center;
 }
@@ -33,21 +28,24 @@ body { margin:0; font-family:Arial; }
   border-radius:10px;
 }
 
-/* ===== HEADER ===== */
+/* ===== APP ===== */
+#app { display:none; }
+
+/* HEADER */
 #header img {
   width:100%;
-  height:80px;
+  height:90px;
   object-fit:cover;
 }
 
-/* ===== INFO ===== */
+/* INFO */
 #info {
   text-align:center;
   font-size:14px;
   padding:5px;
 }
 
-/* ===== FILTRI ===== */
+/* FILTRI */
 #filtri {
   display:flex;
   flex-wrap:wrap;
@@ -56,38 +54,38 @@ body { margin:0; font-family:Arial; }
   padding:8px;
 }
 
-/* ===== MAP ===== */
+/* MAP */
 #map {
   height:55vh;
 }
 
-/* ===== MARKER + ===== */
+/* MARKER + */
 #menuBtn {
   position:absolute;
   top:120px;
   right:20px;
   width:80px;
   height:80px;
-  border-radius:50%;
   background:red;
+  border-radius:50%;
+  color:white;
+  font-size:40px;
   display:flex;
   justify-content:center;
   align-items:center;
-  font-size:40px;
-  color:white;
-  z-index:1000;
   cursor:pointer;
+  z-index:1000;
   box-shadow:0 0 20px rgba(255,0,0,0.7);
   animation:pulse 1.2s infinite;
 }
 
 @keyframes pulse {
-  0% { transform:scale(1); }
-  50% { transform:scale(1.2); }
-  100% { transform:scale(1); }
+  0% {transform:scale(1);}
+  50% {transform:scale(1.2);}
+  100% {transform:scale(1);}
 }
 
-/* ===== MENU ===== */
+/* MENU */
 #menuPoi {
   position:absolute;
   top:220px;
@@ -97,16 +95,17 @@ body { margin:0; font-family:Arial; }
   overflow:auto;
   background:white;
   display:none;
-  z-index:1000;
   border-radius:10px;
+  z-index:1000;
 }
 
 .poi-item {
   padding:10px;
   border-bottom:1px solid #eee;
+  cursor:pointer;
 }
 
-/* ===== RSS ===== */
+/* RSS */
 #rss {
   position:fixed;
   bottom:0;
@@ -118,14 +117,14 @@ body { margin:0; font-family:Arial; }
 }
 
 .marquee {
-  white-space:nowrap;
   overflow:hidden;
+  white-space:nowrap;
 }
 
 .marquee div {
   display:inline-block;
   padding-left:100%;
-  animation:scroll 15s linear infinite;
+  animation:scroll 18s linear infinite;
 }
 
 @keyframes scroll {
@@ -133,7 +132,7 @@ body { margin:0; font-family:Arial; }
   100% { transform:translateX(-100%); }
 }
 
-/* ===== FOOTER ===== */
+/* FOOTER */
 #footer {
   text-align:center;
   font-size:12px;
@@ -144,21 +143,13 @@ body { margin:0; font-family:Arial; }
 
 <body>
 
-<!-- ===== START ===== -->
-<div id="start" class="screen active">
-  <button onclick="goGPS()">WayFinder</button>
+<!-- START -->
+<div id="start">
+  <button onclick="startApp()">WayFinder</button>
 </div>
 
-<!-- ===== GPS ===== -->
-<div id="gps" class="screen">
-  <h2 style="text-align:center;">Attiva posizione GPS</h2>
-  <div style="text-align:center;">
-    <button onclick="startApp()">Consenti GPS</button>
-  </div>
-</div>
-
-<!-- ===== APP ===== -->
-<div id="app" class="screen">
+<!-- APP -->
+<div id="app">
 
 <div id="header">
   <img src="header-wayfinder.png">
@@ -181,7 +172,6 @@ I punti di interesse mappati sono quelli presenti in un raggio di 1 km
 
 <div id="map"></div>
 
-<!-- RSS -->
 <div id="rss">
 <div class="marquee"><div>EVENTI E COMUNICAZIONI ISTITUZIONALI IN TEMPO REALE</div></div>
 <div class="marquee"><div>📞 112 | INFOPOINT TERRITORIALE</div></div>
@@ -197,35 +187,45 @@ I punti di interesse mappati sono quelli presenti in un raggio di 1 km
 
 <script>
 
+// ===== DATA =====
 const POI = [
 {nome:"Bosa", lat:40.3, lon:8.5, cat:"borgo"},
 {nome:"Su Nuraxi", lat:39.7, lon:9.0, cat:"nuraghe"},
-{nome:"Anghelu Ruju", lat:40.6, lon:8.29, cat:"domus"}
+{nome:"Anghelu Ruju", lat:40.6, lon:8.29, cat:"domus"},
+{nome:"Coddu Vecchiu", lat:41.08, lon:9.38, cat:"tomba"},
+{nome:"Fenicottero rosa", lat:39.22, lon:9.14, cat:"fauna"}
 ];
 
 let map, userLat, userLon;
-let markers = [];
+let markers=[];
 
-/* FLOW */
-function goGPS(){
-document.getElementById("start").classList.remove("active");
-document.getElementById("gps").classList.add("active");
+// DISTANZA
+function distanza(a,b,c,d){
+let R=6371;
+let dLat=(c-a)*Math.PI/180;
+let dLon=(d-b)*Math.PI/180;
+let x=Math.sin(dLat/2)**2+
+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dLon/2)**2;
+return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
 }
 
+// START
 function startApp(){
 navigator.geolocation.getCurrentPosition(pos=>{
 
 userLat=pos.coords.latitude;
 userLon=pos.coords.longitude;
 
-document.getElementById("gps").classList.remove("active");
-document.getElementById("app").classList.add("active");
+document.getElementById("start").style.display="none";
+document.getElementById("app").style.display="block";
 
 initMap();
+aggiorna();
+
 });
 }
 
-/* MAP */
+// MAP
 function initMap(){
 map=L.map('map',{dragging:false}).setView([40.1,9],8);
 
@@ -236,11 +236,67 @@ radius:12,fillColor:"red",color:"white",weight:3,fillOpacity:1
 }).addTo(map);
 }
 
-/* MENU */
+// FILTRI
+document.querySelectorAll("#filtri input").forEach(cb=>{
+cb.onchange=aggiorna;
+});
+
+// AGGIORNA
+function aggiorna(){
+
+markers.forEach(m=>map.removeLayer(m));
+markers=[];
+
+let menu=document.getElementById("menuPoi");
+menu.innerHTML="";
+
+let attivi=[...document.querySelectorAll("#filtri input:checked")].map(x=>x.value);
+
+POI.forEach(p=>{
+
+if(attivi.includes(p.cat) && distanza(userLat,userLon,p.lat,p.lon)<=1){
+
+let m=L.circleMarker([p.lat,p.lon],{
+radius:6,fillColor:"blue",color:"blue",fillOpacity:1
+}).addTo(map);
+
+markers.push(m);
+
+// popup
+m.on("click",()=>{
+let wiki=encodeURIComponent(p.nome.replace(/ /g,"_"));
+m.bindPopup(`
+<b>${p.nome}</b><br><br>
+<a href="https://it.wikipedia.org/wiki/${wiki}" target="_blank">Wikipedia</a><br><br>
+<a href="https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lon}" target="_blank">Portami qui</a>
+`).openPopup();
+});
+
+// menu
+let div=document.createElement("div");
+div.className="poi-item";
+div.innerText=p.nome;
+div.onclick=()=>map.setView([p.lat,p.lon],15);
+menu.appendChild(div);
+
+}
+});
+}
+
+// MENU
 function toggleMenu(){
 let m=document.getElementById("menuPoi");
 m.style.display = m.style.display==="none"?"block":"none";
 }
+
+// REFRESH
+setInterval(()=>{
+navigator.geolocation.getCurrentPosition(pos=>{
+userLat=pos.coords.latitude;
+userLon=pos.coords.longitude;
+aggiorna();
+});
+},300000);
 
 </script>
 
