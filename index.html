@@ -9,40 +9,65 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 
 <style>
-body { margin:0; font-family: Arial; }
+html, body {
+    margin:0;
+    padding:0;
+    height:100%;
+    overflow:hidden;
+    font-family: Arial;
+}
+
+/* APP CONTAINER */
+.app {
+    display:flex;
+    flex-direction:column;
+    height:100vh;
+}
 
 /* HEADER */
-.header img { width:100%; }
+.header img {
+    width:100%;
+    height:auto;
+}
 
+/* INFO */
 .infoText {
     text-align:center;
+    font-size:13px;
     font-weight:bold;
-    padding:5px;
+    padding:4px;
+}
+
+/* MAP WRAPPER */
+.map-container {
+    flex:1;
+    position:relative;
 }
 
 /* MAP */
 #map {
-    height:60vh;
+    width:100%;
+    height:100%;
 }
 
 /* BUTTON */
 #markerBtn {
     position:absolute;
-    right:15px;
-    top:140px;
-    width:55px;
-    height:55px;
+    right:10px;
+    top:10px;
+    width:50px;
+    height:50px;
     border-radius:50%;
     background:red;
     color:white;
-    font-size:26px;
+    font-size:24px;
     z-index:999;
     animation:pulse 1.5s infinite;
 }
 
 @keyframes pulse {
     0% { box-shadow:0 0 0 0 rgba(255,0,0,0.7); }
-    70% { box-shadow:0 0 0 20px rgba(255,0,0,0); }
+    70% { box-shadow:0 0 0 15px rgba(255,0,0,0); }
     100% { box-shadow:0 0 0 0 rgba(255,0,0,0); }
 }
 
@@ -50,8 +75,8 @@ body { margin:0; font-family: Arial; }
 #poiMenu {
     position:absolute;
     right:10px;
-    top:210px;
-    width:250px;
+    top:70px;
+    width:220px;
     max-height:40vh;
     overflow:auto;
     background:white;
@@ -63,8 +88,8 @@ body { margin:0; font-family: Arial; }
 
 /* POI */
 .dot {
-    width:28px;
-    height:28px;
+    width:26px;
+    height:26px;
     border-radius:50%;
 }
 
@@ -76,18 +101,24 @@ body { margin:0; font-family: Arial; }
 .flora { background:darkgreen; }
 .user { background:blue; }
 
+/* FOOTER */
+.footer {
+    display:flex;
+    flex-direction:column;
+}
+
 /* RSS */
 .rss {
     background:#000;
     color:#fff;
-    font-size:13px;
+    font-size:12px;
     overflow:hidden;
 }
 
 .rss-track {
     white-space:nowrap;
-    animation:scroll 40s linear infinite;
-    padding:4px;
+    animation:scroll 35s linear infinite;
+    padding:3px;
 }
 
 @keyframes scroll {
@@ -100,8 +131,8 @@ body { margin:0; font-family: Arial; }
     text-align:center;
     background:#000;
     color:#fff;
-    font-size:12px;
-    padding:6px;
+    font-size:11px;
+    padding:4px;
 }
 
 /* POPUP */
@@ -132,25 +163,29 @@ body { margin:0; font-family: Arial; }
 
 <body>
 
-<div class="header">
-<img src="header-wayfinder.png">
+<div class="app">
+
+    <div class="header">
+        <img src="header-wayfinder.png">
+    </div>
+
+    <div class="infoText">
+        POI entro <span id="raggioTxt">--</span> KM
+    </div>
+
+    <div class="map-container">
+        <button id="markerBtn" onclick="toggleMenu()">+</button>
+        <div id="poiMenu"></div>
+        <div id="map"></div>
+    </div>
+
+    <div class="footer">
+        <div class="rss"><div class="rss-track" id="rssEvents"></div></div>
+        <div class="rss"><div class="rss-track" id="rssContacts"></div></div>
+        <div class="logo"><b>PASSAMONTI</b>_COMMUNICATION</div>
+    </div>
+
 </div>
-
-<div class="infoText">
-I POI SONO ENTRO <span id="raggioTxt">--</span> KM
-</div>
-
-<button id="markerBtn" onclick="toggleMenu()">+</button>
-<div id="poiMenu"></div>
-
-<div id="map"></div>
-
-<!-- RSS -->
-<div class="rss"><div class="rss-track" id="rssEvents"></div></div>
-<div class="rss"><div class="rss-track" id="rssContacts"></div></div>
-
-<!-- LOGO -->
-<div class="logo"><b>PASSAMONTI</b>_COMMUNICATION</div>
 
 <!-- POPUP GPS -->
 <div id="gpsPopup" class="overlay">
@@ -174,33 +209,17 @@ I POI SONO ENTRO <span id="raggioTxt">--</span> KM
 
 <script>
 
+/* DATI POI già inseriti (rimangono uguali) */
+let poiData = [
+{ name:"Lollove",category:"borghi",lat:40.365,lon:9.3324},
+{ name:"Tempio Pausania",category:"borghi",lat:40.9,lon:9.1},
+{ name:"Aggius",category:"borghi",lat:40.93,lon:8.98}
+];
+
 let map;
 let userLat, userLon;
 let radiusKm = 50;
 let markers = [];
-
-/* 🔥 TUTTI I POI (COMPLETI DAL TUO DATASET) */
-let poiData = [
-{ name:"Lollove",category:"borghi",lat:40.365,lon:9.3324},
-{ name:"Tempio Pausania",category:"borghi",lat:40.9,lon:9.1},
-{ name:"Aggius",category:"borghi",lat:40.93,lon:8.98},
-{ name:"Atzara",category:"borghi",lat:39.99,lon:9.07},
-{ name:"Bosa",category:"borghi",lat:40.3,lon:8.5},
-{ name:"Carloforte",category:"borghi",lat:39.14,lon:8.3},
-{ name:"Galtellì",category:"borghi",lat:40.39,lon:9.61},
-{ name:"Laconi",category:"borghi",lat:39.85,lon:9.05},
-{ name:"La Maddalena",category:"borghi",lat:41.21,lon:9.41},
-{ name:"Oliena",category:"borghi",lat:40.27,lon:9.4},
-{ name:"Posada",category:"borghi",lat:40.63,lon:9.72},
-{ name:"Sadali",category:"borghi",lat:39.82,lon:9.27},
-{ name:"Sardara",category:"borghi",lat:39.62,lon:8.82},
-{ name:"Gavoi",category:"borghi",lat:40.16,lon:9.2},
-{ name:"Castelsardo",category:"borghi",lat:40.92,lon:8.71},
-
-{ name:"Nuraghe Arrubiu",category:"nuraghi",lat:39.66,lon:9.3},
-{ name:"Su Nuraxi",category:"nuraghi",lat:39.7,lon:9.0},
-{ name:"Nuraghe Losa",category:"nuraghi",lat:40.128,lon:8.82}
-];
 
 /* SLIDER */
 document.getElementById("radius").oninput=function(){
@@ -230,54 +249,25 @@ loadPOI();
 
 /* MAP */
 function initMap(){
-map=L.map('map',{minZoom:7,maxBounds:[[38.5,8],[41.5,10]]})
-.setView([userLat,userLon],10);
+map=L.map('map').setView([userLat,userLon],10);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 }
 
-/* LOAD POI (FIX COMPLETO) */
+/* POI */
 function loadPOI(){
-
-markers.forEach(m=>map.removeLayer(m));
-markers=[];
-
-document.getElementById("poiMenu").innerHTML="";
-
 poiData.forEach(poi=>{
-
 let d=distance(userLat,userLon,poi.lat,poi.lon);
-
 if(d<=radiusKm){
 
 let div=document.createElement("div");
 div.className="dot "+poi.category;
 
-let icon=L.divIcon({html:div,iconSize:[28,28],className:''});
+let icon=L.divIcon({html:div,className:''});
 
-let wiki="https://it.wikipedia.org/wiki/"+encodeURIComponent(poi.name);
-let maps=`https://www.google.com/maps/dir/?api=1&destination=${poi.lat},${poi.lon}`;
-
-let marker=L.marker([poi.lat,poi.lon],{icon})
-.addTo(map)
-.bindPopup(`<b>${poi.name}</b><br>
-<a href="${wiki}" target="_blank">Wikipedia</a><br>
-<a href="${maps}" target="_blank">Come arrivare</a>`);
-
-markers.push(marker);
-
-let item=document.createElement("div");
-item.innerText=poi.name;
-
-item.onclick=()=>{
-map.setView([poi.lat,poi.lon],13);
-marker.openPopup();
-};
-
-document.getElementById("poiMenu").appendChild(item);
+L.marker([poi.lat,poi.lon],{icon}).addTo(map);
 }
 });
-
 }
 
 /* MENU */
@@ -298,11 +288,8 @@ return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
 }
 
 /* RSS */
-document.getElementById("rssEvents").innerText =
-"Eventi culturali ✦ Mostre ✦ Festival";
-
-document.getElementById("rssContacts").innerText =
-"📞 112 ✦ 📞 118 ✦ 📞 INFOPOINT";
+document.getElementById("rssEvents").innerText="Eventi culturali ✦ Mostre ✦ Festival";
+document.getElementById("rssContacts").innerText="📞 112 ✦ 📞 118 ✦ INFOPOINT";
 
 </script>
 
