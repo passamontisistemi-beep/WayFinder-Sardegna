@@ -11,7 +11,7 @@
 <style>
 body { margin:0; font-family:Arial; }
 
-/* SCREEN */
+/* SCHERMATE */
 .screen { display:none; }
 .active { display:flex; }
 
@@ -21,7 +21,6 @@ body { margin:0; font-family:Arial; }
   justify-content:center;
   align-items:center;
 }
-
 #start button {
   padding:20px;
   font-size:20px;
@@ -31,15 +30,27 @@ body { margin:0; font-family:Arial; }
   border-radius:10px;
 }
 
-/* RAGGIO */
-#raggioScreen {
+/* GPS */
+#gps {
   height:100vh;
   flex-direction:column;
   justify-content:center;
   align-items:center;
 }
 
-#slider { width:80%; }
+/* FILTRI */
+#filtriScreen {
+  height:100vh;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+}
+#filtri {
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  justify-content:center;
+}
 
 /* APP */
 #app {
@@ -65,8 +76,42 @@ body { margin:0; font-family:Arial; }
   height:50vh;
 }
 
+/* MENU + */
+#menuBtn {
+  position:absolute;
+  top:110px;
+  right:20px;
+  width:80px;
+  height:80px;
+  background:red;
+  border-radius:50%;
+  color:white;
+  font-size:40px;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  z-index:1000;
+  cursor:pointer;
+}
+
+/* MENU */
+#menuPoi {
+  position:absolute;
+  top:200px;
+  right:20px;
+  width:260px;
+  max-height:300px;
+  overflow:auto;
+  background:white;
+  display:none;
+  border-radius:10px;
+}
+
 /* RSS */
 #rss {
+  position:fixed;
+  bottom:0;
+  width:100%;
   background:black;
   color:white;
   font-weight:bold;
@@ -76,16 +121,20 @@ body { margin:0; font-family:Arial; }
   overflow:hidden;
   white-space:nowrap;
 }
-
 .marquee div {
   display:inline-block;
   padding-left:100%;
   animation:scroll 15s linear infinite;
 }
-
 @keyframes scroll {
   0% { transform:translateX(0); }
   100% { transform:translateX(-100%); }
+}
+
+/* FOOTER */
+#footer {
+  text-align:center;
+  padding:10px;
 }
 </style>
 </head>
@@ -94,15 +143,27 @@ body { margin:0; font-family:Arial; }
 
 <!-- START -->
 <div id="start" class="screen active">
-  <button onclick="startGPS()">WayFinder</button>
+  <button onclick="goGPS()">WayFinder</button>
 </div>
 
-<!-- RAGGIO -->
-<div id="raggioScreen" class="screen">
-  <h2>Seleziona raggio</h2>
-  <input type="range" id="slider" min="1" max="50" value="10">
-  <div id="valore">10 km</div>
-  <button onclick="entraApp()">Conferma</button>
+<!-- GPS -->
+<div id="gps" class="screen">
+  <h2>Attiva GPS</h2>
+  <button onclick="consentiGPS()">Consenti</button>
+</div>
+
+<!-- FILTRI -->
+<div id="filtriScreen" class="screen">
+  <h3>Seleziona POI</h3>
+  <div id="filtri">
+    <label><input type="checkbox" id="all"> Tutti</label>
+    <label><input type="checkbox" value="borgo"> Borghi</label>
+    <label><input type="checkbox" value="nuraghe"> Nuraghi</label>
+    <label><input type="checkbox" value="domus"> Domus</label>
+    <label><input type="checkbox" value="tomba"> Tombe</label>
+    <label><input type="checkbox" value="fauna"> Fauna</label>
+  </div>
+  <button onclick="entraMappa()">Conferma</button>
 </div>
 
 <!-- APP -->
@@ -113,15 +174,22 @@ body { margin:0; font-family:Arial; }
 </div>
 
 <div id="info">
-I punti di interesse mappati sono quelli presenti in un raggio di <span id="raggioTxt"></span> km
+I punti di interesse mappati sono quelli presenti in un raggio di 10 km
 </div>
 
-<div id="rss">
-<div class="marquee"><div>EVENTI ISTITUZIONALI</div></div>
-<div class="marquee"><div>📞 112 INFOPOINT</div></div>
-</div>
+<div id="menuBtn" onclick="toggleMenu()">+</div>
+<div id="menuPoi"></div>
 
 <div id="map"></div>
+
+<div id="rss">
+<div class="marquee"><div>EVENTI ISTITUZIONALI IN TEMPO REALE</div></div>
+<div class="marquee"><div>📞 112 | INFOPOINT TERRITORIALE</div></div>
+</div>
+
+<div id="footer">
+<b>PASSAMONTI</b>_COMMUNICATION
+</div>
 
 </div>
 
@@ -129,67 +197,107 @@ I punti di interesse mappati sono quelli presenti in un raggio di <span id="ragg
 
 <script>
 
+// ===== VAR =====
 let userLat, userLon;
-let raggio = 10;
 let map;
+let markers=[];
+const RAGGIO = 10;
 
-// SLIDER
-document.getElementById("slider").oninput = function(){
-raggio = this.value;
-document.getElementById("valore").innerText = raggio + " km";
-};
+// ===== DATA (ESTRAI DA EXCEL DOPO) =====
+const POI = [
+{nome:"Bosa", lat:40.3, lon:8.5, cat:"borgo"},
+{nome:"Su Nuraxi", lat:39.7, lon:9.0, cat:"nuraghe"},
+{nome:"Anghelu Ruju", lat:40.6, lon:8.29, cat:"domus"}
+];
 
-// START GPS
-function startGPS(){
-
-navigator.geolocation.getCurrentPosition(
-(pos)=>{
-userLat = pos.coords.latitude;
-userLon = pos.coords.longitude;
-
-// cambia schermata
+// ===== FLOW =====
+function goGPS(){
 document.getElementById("start").classList.remove("active");
-document.getElementById("raggioScreen").classList.add("active");
-},
-()=>{
-alert("GPS non autorizzato");
-}
-);
-
+document.getElementById("gps").classList.add("active");
 }
 
-// ENTRA APP
-function entraApp(){
+function consentiGPS(){
+navigator.geolocation.getCurrentPosition(pos=>{
+userLat=pos.coords.latitude;
+userLon=pos.coords.longitude;
 
-document.getElementById("raggioScreen").classList.remove("active");
+document.getElementById("gps").classList.remove("active");
+document.getElementById("filtriScreen").classList.add("active");
+});
+}
+
+function entraMappa(){
+document.getElementById("filtriScreen").classList.remove("active");
 document.getElementById("app").classList.add("active");
 
-document.getElementById("raggioTxt").innerText = raggio;
-
-// FIX LEAFLET
 setTimeout(()=>{
 initMap();
+aggiorna();
 },200);
-
 }
 
-// MAP
+// ===== MAP =====
 function initMap(){
-
-map = L.map('map',{dragging:false}).setView([userLat,userLon],10);
+map=L.map('map',{dragging:false}).setView([40.1,9],8);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-// TU SEI QUI
 L.circleMarker([userLat,userLon],{
-radius:12,
-fillColor:"red",
-color:"white",
-weight:3,
-fillOpacity:1
+radius:12,fillColor:"red",color:"white",weight:3
 }).addTo(map).bindPopup("Tu sei qui").openPopup();
+}
+
+// ===== DISTANZA =====
+function distanza(a,b,c,d){
+let R=6371;
+let dLat=(c-a)*Math.PI/180;
+let dLon=(d-b)*Math.PI/180;
+let x=Math.sin(dLat/2)**2+
+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dLon/2)**2;
+return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
+}
+
+// ===== AGGIORNA =====
+function aggiorna(){
+
+markers.forEach(m=>map.removeLayer(m));
+markers=[];
+
+let attivi=[...document.querySelectorAll("#filtri input:checked")]
+.map(x=>x.value).filter(v=>v);
+
+let menu=document.getElementById("menuPoi");
+menu.innerHTML="";
+
+POI.forEach(p=>{
+
+if(attivi.includes(p.cat) && distanza(userLat,userLon,p.lat,p.lon)<=RAGGIO){
+
+let m=L.circleMarker([p.lat,p.lon]).addTo(map);
+markers.push(m);
+
+let div=document.createElement("div");
+div.innerText=p.nome;
+menu.appendChild(div);
 
 }
+});
+}
+
+// ===== MENU =====
+function toggleMenu(){
+let m=document.getElementById("menuPoi");
+m.style.display = m.style.display==="none"?"block":"none";
+}
+
+// ===== REFRESH =====
+setInterval(()=>{
+navigator.geolocation.getCurrentPosition(pos=>{
+userLat=pos.coords.latitude;
+userLon=pos.coords.longitude;
+aggiorna();
+});
+},300000);
 
 </script>
 
