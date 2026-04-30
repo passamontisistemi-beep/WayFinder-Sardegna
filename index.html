@@ -1,4 +1,4 @@
-<!-- WF_SARDEGNA_V4_FINAL -->
+<!-- WF_SARDEGNA_V4_UX_FINAL -->
 
 <!DOCTYPE html>
 <html lang="it">
@@ -14,7 +14,7 @@
 body {
   margin:0;
   font-family: Arial, sans-serif;
-  background:#ffffff;
+  background:#fff;
 }
 
 /* HEADER */
@@ -22,22 +22,30 @@ header {
   text-align:center;
   font-weight:bold;
   padding:10px;
-  background:#fff;
   border-bottom:1px solid #eee;
 }
 
-/* CONTROLLI */
-.controls {
+/* FILTRI */
+#filtri {
   display:flex;
-  justify-content:space-around;
-  padding:8px;
-  background:#fff;
+  flex-wrap:wrap;
+  gap:6px;
+  padding:10px;
+  justify-content:center;
 }
 
-select, button {
-  padding:8px;
-  border-radius:8px;
-  border:1px solid #ccc;
+.filtro {
+  padding:6px 10px;
+  color:white;
+  border-radius:20px;
+  font-size:12px;
+  opacity:0.4;
+  cursor:pointer;
+}
+
+.filtro.active {
+  opacity:1;
+  border:2px solid #000;
 }
 
 /* MAPPA */
@@ -48,7 +56,7 @@ select, button {
 /* MENU POI */
 #menuPoi {
   position:absolute;
-  top:140px;
+  top:160px;
   right:10px;
   width:260px;
   max-height:300px;
@@ -83,10 +91,6 @@ select, button {
   bottom:0;
 }
 
-#sheet h3 {
-  margin-top:0;
-}
-
 #vai {
   width:100%;
   padding:12px;
@@ -107,11 +111,6 @@ select, button {
   text-align:center;
   padding:5px;
 }
-
-.logo {
-  font-size:13px;
-}
-
 </style>
 </head>
 
@@ -119,29 +118,21 @@ select, button {
 
 <header>WAYFINDER SARDEGNA</header>
 
-<div class="controls">
-  <select id="filtroCategoria">
-    <option value="all">Tutti</option>
-    <option value="nuraghe">Nuraghi</option>
-    <option value="domus">Domus</option>
-    <option value="tomba">Tombe</option>
-    <option value="fauna">Fauna</option>
-    <option value="borgo">Borghi</option>
-  </select>
-
-  <select id="percorsi">
-    <option value="none">Percorsi</option>
-    <option value="cultura">Culturale</option>
-    <option value="natura">Natura</option>
-    <option value="mix">Mix</option>
-  </select>
-
-  <button onclick="toggleMenu()">POI</button>
+<!-- FILTRI MULTIPLI -->
+<div id="filtri">
+  <div class="filtro active" data-cat="nuraghe" style="background:brown">Nuraghi</div>
+  <div class="filtro active" data-cat="borgo" style="background:blue">Borghi</div>
+  <div class="filtro" data-cat="domus" style="background:purple">Domus</div>
+  <div class="filtro" data-cat="tomba" style="background:black">Tombe</div>
+  <div class="filtro" data-cat="fauna" style="background:green">Fauna</div>
 </div>
+
+<button onclick="toggleMenu()" style="margin:5px">POI</button>
 
 <div id="menuPoi"></div>
 <div id="map"></div>
 
+<!-- SCHEDA -->
 <div id="sheet">
   <h3 id="titolo"></h3>
   <p id="descrizione">Caricamento...</p>
@@ -149,9 +140,9 @@ select, button {
 </div>
 
 <div class="footer">
-  <div>📡 Eventi territoriali</div>
-  <div>📞 <a href="tel:112">112</a> Emergenze</div>
-  <div class="logo"><b>PASSAMONTI</b>_COMMUNICATION</div>
+  📞 <a href="tel:112">112</a> Emergenze  
+  <br>
+  <b>PASSAMONTI</b>_COMMUNICATION
 </div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -165,24 +156,42 @@ const RAGGIO = 1;
 let map = L.map('map');
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-// Limiti Sardegna
 const bounds = [[38.8,8.0],[41.3,10.0]];
 map.setMaxBounds(bounds);
 
-// ===== DATI REALI (ridotti demo) =====
+// ===== DATI =====
 const POI = [
   {nome:"Su Nuraxi", lat:39.7, lon:9.0, categoria:"nuraghe"},
   {nome:"Nuraghe Palmavera", lat:40.557, lon:8.319, categoria:"nuraghe"},
   {nome:"Necropoli di Anghelu Ruju", lat:40.6, lon:8.29, categoria:"domus"},
   {nome:"Coddu Vecchiu", lat:41.08, lon:9.38, categoria:"tomba"},
   {nome:"Fenicottero rosa", lat:39.22, lon:9.14, categoria:"fauna"},
-  {nome:"Bosa", lat:40.3, lon:8.5, categoria:"borgo"}
+  {nome:"Bosa", lat:40.3, lon:8.5, categoria:"borgo"},
+  {nome:"Castelsardo", lat:40.92, lon:8.71, categoria:"borgo"}
 ];
 
 // ===== VARIABILI =====
 let userLat, userLon;
 let markers = [];
 let percorsoLine;
+let categorieAttive = ["nuraghe","borgo"];
+
+// ===== FILTRI CLICK =====
+document.querySelectorAll(".filtro").forEach(btn=>{
+  btn.onclick = () => {
+    let cat = btn.dataset.cat;
+
+    if(categorieAttive.includes(cat)){
+      categorieAttive = categorieAttive.filter(c=>c!==cat);
+      btn.classList.remove("active");
+    } else {
+      categorieAttive.push(cat);
+      btn.classList.add("active");
+    }
+
+    aggiorna();
+  };
+});
 
 // ===== UTILS =====
 function dist(a,b,c,d){
@@ -202,30 +211,32 @@ function colore(cat){
          cat==="borgo"?"blue":"gray";
 }
 
-// ===== GPS LIVE =====
+// ===== GPS =====
 navigator.geolocation.watchPosition(pos=>{
   userLat = pos.coords.latitude;
   userLon = pos.coords.longitude;
 
   map.setView([userLat,userLon], 14);
 
+  setTimeout(()=>map.invalidateSize(),300);
+
   aggiorna();
 });
 
 // ===== UPDATE =====
 function aggiorna(){
+
   markers.forEach(m=>map.removeLayer(m));
   markers=[];
 
   if(percorsoLine) map.removeLayer(percorsoLine);
 
-  let filtro = document.getElementById("filtroCategoria").value;
   let lista = document.getElementById("menuPoi");
   lista.innerHTML="";
 
   let vicini = POI.filter(p=>{
     return dist(userLat,userLon,p.lat,p.lon)<=RAGGIO &&
-      (filtro==="all"||p.categoria===filtro);
+      (categorieAttive.length===0 || categorieAttive.includes(p.categoria));
   });
 
   vicini.forEach(p=>{
@@ -250,6 +261,7 @@ function aggiorna(){
 
 // ===== SCHEDA =====
 function apriScheda(p){
+
   let sheet=document.getElementById("sheet");
   sheet.classList.add("active");
 
@@ -274,34 +286,19 @@ function toggleMenu(){
   m.style.display = m.style.display==="none"?"block":"none";
 }
 
-// ===== ROUTE ENGINE =====
+// ===== PERCORSI =====
 function generaPercorso(lista){
 
-  let tipo = document.getElementById("percorsi").value;
-  if(tipo==="none") return;
+  if(lista.length<2) return;
 
-  let filtrati = lista;
-
-  if(tipo==="cultura"){
-    filtrati = lista.filter(p=>["nuraghe","domus","tomba"].includes(p.categoria));
-  }
-
-  if(tipo==="natura"){
-    filtrati = lista.filter(p=>p.categoria==="fauna");
-  }
-
-  filtrati.sort((a,b)=>{
+  let percorso = lista.sort((a,b)=>{
     return dist(userLat,userLon,a.lat,a.lon) -
            dist(userLat,userLon,b.lat,b.lon);
-  });
-
-  let percorso = filtrati.slice(0,4);
+  }).slice(0,4);
 
   let coords = percorso.map(p=>[p.lat,p.lon]);
 
-  if(coords.length>1){
-    percorsoLine = L.polyline(coords, {color:"red"}).addTo(map);
-  }
+  percorsoLine = L.polyline(coords, {color:"red"}).addTo(map);
 }
 
 </script>
