@@ -11,6 +11,26 @@
 <style>
 body { margin:0; font-family:Arial; }
 
+/* ===== HEADER ===== */
+#header {
+  width:100%;
+  background:#fff;
+  text-align:center;
+}
+
+#header img {
+  width:100%;
+  max-height:80px;
+  object-fit:contain;
+}
+
+/* ===== INFO ===== */
+#info {
+  text-align:center;
+  font-size:14px;
+  padding:8px;
+}
+
 /* ===== SCREEN 1 ===== */
 #screen1 {
   height:100vh;
@@ -18,8 +38,6 @@ body { margin:0; font-family:Arial; }
   flex-direction:column;
   justify-content:center;
   align-items:center;
-  text-align:center;
-  padding:20px;
 }
 
 #gpsBtn {
@@ -28,37 +46,45 @@ body { margin:0; font-family:Arial; }
   color:white;
   border:none;
   border-radius:10px;
-  font-size:16px;
-}
-
-/* LEGENDA */
-#legenda {
-  margin-top:20px;
-  display:flex;
-  flex-wrap:wrap;
-  gap:8px;
-  justify-content:center;
-}
-
-.legenda-item {
-  padding:6px 10px;
-  border-radius:20px;
-  color:white;
-  font-size:12px;
 }
 
 /* ===== SCREEN 2 ===== */
 #screen2 { display:none; }
 
-#map { height:100vh; }
+/* FILTRI DOPO GPS */
+#filtri {
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  justify-content:center;
+  padding:10px;
+}
 
-/* 🔴 MARKER + SUPER ANIMATO */
+.filtro {
+  padding:8px 12px;
+  border-radius:20px;
+  color:white;
+  opacity:0.4;
+  cursor:pointer;
+}
+
+.filtro.active {
+  opacity:1;
+  border:2px solid black;
+}
+
+/* MAPPA */
+#map {
+  height: calc(100vh - 150px);
+}
+
+/* 🔴 MARKER + */
 #menuBtn {
   position:absolute;
-  top:20px;
+  top:120px;
   right:20px;
-  width:75px;
-  height:75px;
+  width:70px;
+  height:70px;
   border-radius:50%;
   background:red;
   color:white;
@@ -66,23 +92,20 @@ body { margin:0; font-family:Arial; }
   display:flex;
   justify-content:center;
   align-items:center;
-  cursor:pointer;
   z-index:1000;
-
-  box-shadow:0 0 0 rgba(255,0,0,0.7);
   animation:pulse 1.5s infinite;
 }
 
 @keyframes pulse {
-  0% { transform:scale(1); box-shadow:0 0 0 0 rgba(255,0,0,0.7);}
-  70% { transform:scale(1.15); box-shadow:0 0 25px 15px rgba(255,0,0,0);}
-  100% { transform:scale(1); box-shadow:0 0 0 0 rgba(255,0,0,0);}
+  0% {transform:scale(1);}
+  50% {transform:scale(1.15);}
+  100% {transform:scale(1);}
 }
 
 /* MENU */
 #menuPoi {
   position:absolute;
-  top:100px;
+  top:200px;
   right:20px;
   width:260px;
   max-height:400px;
@@ -102,27 +125,31 @@ body { margin:0; font-family:Arial; }
 
 <body>
 
-<!-- ===== HOMEPAGE ===== -->
+<!-- SCREEN 1 -->
 <div id="screen1">
-
-<h2>WayFinder Sardegna</h2>
-
-<p>Attiva la geolocalizzazione per scoprire i punti di interesse intorno a te</p>
-
-<button id="gpsBtn">Attiva GPS</button>
-
-<div id="legenda">
-  <div class="legenda-item" style="background:brown">Nuraghi</div>
-  <div class="legenda-item" style="background:blue">Borghi</div>
-  <div class="legenda-item" style="background:purple">Domus</div>
-  <div class="legenda-item" style="background:black">Tombe</div>
-  <div class="legenda-item" style="background:green">Fauna</div>
+  <h2>WayFinder Sardegna</h2>
+  <button id="gpsBtn">Attiva GPS</button>
 </div>
 
-</div>
-
-<!-- ===== MAPPA ===== -->
+<!-- SCREEN 2 -->
 <div id="screen2">
+
+<div id="header">
+  <img src="header.png">
+</div>
+
+<div id="info">
+I punti di interesse mappati sono quelli presenti in un raggio di 1 km
+</div>
+
+<!-- FILTRI -->
+<div id="filtri">
+  <div class="filtro" data-cat="nuraghe" style="background:brown">Nuraghi</div>
+  <div class="filtro" data-cat="borgo" style="background:blue">Borghi</div>
+  <div class="filtro" data-cat="domus" style="background:purple">Domus</div>
+  <div class="filtro" data-cat="tomba" style="background:black">Tombe</div>
+  <div class="filtro" data-cat="fauna" style="background:green">Fauna</div>
+</div>
 
 <div id="menuBtn">+</div>
 <div id="menuPoi"></div>
@@ -135,7 +162,7 @@ body { margin:0; font-family:Arial; }
 
 <script>
 
-// ===== DATI (estratto reale) =====
+// ===== DATI =====
 const POI = [
 {nome:"Bosa", lat:40.3, lon:8.5, categoria:"borgo"},
 {nome:"Su Nuraxi", lat:39.7, lon:9.0, categoria:"nuraghe"},
@@ -144,10 +171,9 @@ const POI = [
 {nome:"Fenicottero rosa", lat:39.22, lon:9.14, categoria:"fauna"}
 ];
 
-let map, userMarker;
+let map, userLat, userLon;
 let markers = {};
-let selected = null;
-let userLat, userLon;
+let categorieAttive = [];
 
 // ===== DISTANZA =====
 function distanza(a,b,c,d){
@@ -157,15 +183,6 @@ function distanza(a,b,c,d){
   let x=Math.sin(dLat/2)**2+
     Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dLon/2)**2;
   return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
-}
-
-// ===== COLORI =====
-function colore(cat){
-  return cat==="nuraghe"?"brown":
-         cat==="domus"?"purple":
-         cat==="tomba"?"black":
-         cat==="fauna"?"green":
-         cat==="borgo"?"blue":"gray";
 }
 
 // ===== GPS =====
@@ -183,8 +200,8 @@ document.getElementById("gpsBtn").onclick = ()=>{
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-    // TU SEI QUI GRANDE
-    userMarker = L.circleMarker([userLat,userLon],{
+    // TU SEI QUI
+    L.circleMarker([userLat,userLon],{
       radius:14,
       color:"white",
       fillColor:"red",
@@ -192,93 +209,79 @@ document.getElementById("gpsBtn").onclick = ()=>{
       weight:3
     }).addTo(map).bindPopup("Tu sei qui").openPopup();
 
-    caricaPOI();
-    creaMenu();
-
   });
 };
 
-// ===== CARICA POI (1 KM) =====
-function caricaPOI(){
+// ===== FILTRI =====
+document.querySelectorAll(".filtro").forEach(btn=>{
+  btn.onclick = ()=>{
+
+    let cat = btn.dataset.cat;
+
+    if(categorieAttive.includes(cat)){
+      categorieAttive = categorieAttive.filter(c=>c!==cat);
+      btn.classList.remove("active");
+    } else {
+      categorieAttive.push(cat);
+      btn.classList.add("active");
+    }
+
+    aggiornaMappa();
+    creaMenu();
+  };
+});
+
+// ===== AGGIORNA MAPPA =====
+function aggiornaMappa(){
+
+  // pulizia
+  for(let k in markers){
+    map.removeLayer(markers[k]);
+  }
+  markers = {};
 
   POI.forEach(p=>{
 
-    if(distanza(userLat,userLon,p.lat,p.lon)<=1){
+    if(categorieAttive.includes(p.categoria)
+       && distanza(userLat,userLon,p.lat,p.lon)<=1){
 
       let m = L.circleMarker([p.lat,p.lon],{
         radius:7,
-        color:colore(p.categoria),
-        fillColor:colore(p.categoria),
+        color:"blue",
+        fillColor:"blue",
         fillOpacity:1
       }).addTo(map);
 
-      markers[p.nome]=m;
+      markers[p.nome] = m;
 
-      m.on("click",()=>seleziona(p));
+      m.on("click",()=>alert(p.nome));
     }
-
   });
 }
 
 // ===== MENU =====
 function creaMenu(){
+
   let menu=document.getElementById("menuPoi");
+  menu.innerHTML="";
 
   POI.forEach(p=>{
-    if(distanza(userLat,userLon,p.lat,p.lon)<=1){
+    if(categorieAttive.includes(p.categoria)
+       && distanza(userLat,userLon,p.lat,p.lon)<=1){
 
       let div=document.createElement("div");
       div.className="poi-item";
       div.innerText=p.nome;
-      div.onclick=()=>seleziona(p);
+      div.onclick=()=>map.setView([p.lat,p.lon],15);
       menu.appendChild(div);
-
     }
   });
 }
 
-// ===== TOGGLE MENU =====
 document.getElementById("menuBtn").onclick=()=>{
   let m=document.getElementById("menuPoi");
   m.style.display = m.style.display==="none"?"block":"none";
 };
-
-// ===== SELEZIONE + POPUP =====
-function seleziona(p){
-
-  if(selected){
-    let old=markers[selected.nome];
-    old.setStyle({
-      fillColor:colore(selected.categoria),
-      color:colore(selected.categoria),
-      radius:7
-    });
-  }
-
-  let m=markers[p.nome];
-
-  map.setView([p.lat,p.lon],15);
-
-  m.setStyle({
-    fillColor:"red",
-    color:"red",
-    radius:12
-  });
-
-  selected=p;
-
-  let wiki = encodeURIComponent(p.nome.replace(/ /g,"_"));
-  let wikiURL = `https://it.wikipedia.org/wiki/${wiki}`;
-  let mapsURL = `https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lon}`;
-
-  let popup = `
-    <b>${p.nome}</b><br><br>
-    <a href="${wikiURL}" target="_blank">📖 Wikipedia</a><br><br>
-    <a href="${mapsURL}" target="_blank">📍 Portami qui</a>
-  `;
-
-  m.bindPopup(popup).openPopup();
-}
 
 </script>
 
