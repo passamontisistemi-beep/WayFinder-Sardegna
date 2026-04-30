@@ -1,4 +1,4 @@
-<!-- WF_SARDEGNA_V4_UX_FINAL -->
+<!-- WF_SARDEGNA_V5_FLOW_CORRETTO -->
 
 <!DOCTYPE html>
 <html lang="it">
@@ -11,59 +11,68 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 
 <style>
-body {
-  margin:0;
-  font-family: Arial, sans-serif;
-  background:#fff;
+body { margin:0; font-family:Arial; }
+
+/* ===== SCREEN 1 ===== */
+#screen1 {
+  height:100vh;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  text-align:center;
+  padding:20px;
 }
 
-/* HEADER */
-header {
-  text-align:center;
-  font-weight:bold;
-  padding:10px;
-  border-bottom:1px solid #eee;
+#gpsBtn {
+  padding:15px;
+  background:black;
+  color:white;
+  border:none;
+  border-radius:10px;
+  margin:20px;
+}
+
+#loading {
+  display:none;
 }
 
 /* FILTRI */
 #filtri {
   display:flex;
   flex-wrap:wrap;
-  gap:6px;
-  padding:10px;
+  gap:8px;
   justify-content:center;
 }
 
 .filtro {
-  padding:6px 10px;
-  color:white;
+  padding:8px 12px;
   border-radius:20px;
-  font-size:12px;
+  color:white;
   opacity:0.4;
-  cursor:pointer;
 }
 
 .filtro.active {
   opacity:1;
-  border:2px solid #000;
+  border:2px solid black;
 }
 
-/* MAPPA */
+/* ===== SCREEN 2 ===== */
+#screen2 {
+  display:none;
+}
+
 #map {
-  height:65vh;
+  height:70vh;
 }
 
-/* MENU POI */
 #menuPoi {
   position:absolute;
-  top:160px;
+  top:120px;
   right:10px;
-  width:260px;
-  max-height:300px;
+  background:white;
+  max-height:250px;
   overflow:auto;
-  background:#fff;
-  border-radius:12px;
-  box-shadow:0 4px 12px rgba(0,0,0,0.2);
   display:none;
   z-index:1000;
 }
@@ -71,18 +80,13 @@ header {
 .poi-item {
   padding:10px;
   border-bottom:1px solid #eee;
-  cursor:pointer;
 }
 
-/* BOTTOM SHEET */
 #sheet {
   position:fixed;
   bottom:-100%;
   width:100%;
-  background:#fff;
-  border-top-left-radius:20px;
-  border-top-right-radius:20px;
-  box-shadow:0 -4px 20px rgba(0,0,0,0.2);
+  background:white;
   padding:15px;
   transition:0.3s;
 }
@@ -91,34 +95,35 @@ header {
   bottom:0;
 }
 
-#vai {
-  width:100%;
-  padding:12px;
-  background:#000;
-  color:#fff;
-  border:none;
-  border-radius:10px;
-}
-
-/* FOOTER */
 .footer {
   position:fixed;
   bottom:0;
   width:100%;
-  background:#fff;
-  border-top:1px solid #eee;
-  font-size:12px;
+  background:white;
   text-align:center;
-  padding:5px;
+  font-size:12px;
 }
 </style>
 </head>
 
 <body>
 
-<header>WAYFINDER SARDEGNA</header>
+<!-- ========================= -->
+<!-- SCREEN 1 -->
+<!-- ========================= -->
 
-<!-- FILTRI MULTIPLI -->
+<div id="screen1">
+
+<h2>WayFinder Sardegna</h2>
+
+<p>Attiva la geolocalizzazione per scoprire i punti di interesse intorno a te</p>
+
+<button id="gpsBtn">Attiva GPS</button>
+
+<div id="loading">📡 Rilevamento posizione...</div>
+
+<h3>Categorie disponibili</h3>
+
 <div id="filtri">
   <div class="filtro active" data-cat="nuraghe" style="background:brown">Nuraghi</div>
   <div class="filtro active" data-cat="borgo" style="background:blue">Borghi</div>
@@ -127,101 +132,102 @@ header {
   <div class="filtro" data-cat="fauna" style="background:green">Fauna</div>
 </div>
 
-<button onclick="toggleMenu()" style="margin:5px">POI</button>
+</div>
+
+<!-- ========================= -->
+<!-- SCREEN 2 -->
+<!-- ========================= -->
+
+<div id="screen2">
+
+<header style="text-align:center;font-weight:bold;">
+WAYFINDER SARDEGNA
+</header>
+
+<div style="text-align:center;font-size:14px;">
+I punti di interesse mappati sono quelli presenti in un raggio di 1 km
+</div>
+
+<button onclick="toggleMenu()">POI</button>
 
 <div id="menuPoi"></div>
 <div id="map"></div>
 
-<!-- SCHEDA -->
 <div id="sheet">
   <h3 id="titolo"></h3>
-  <p id="descrizione">Caricamento...</p>
+  <p id="descrizione"></p>
   <button id="vai">Portami qui</button>
 </div>
 
 <div class="footer">
-  📞 <a href="tel:112">112</a> Emergenze  
-  <br>
-  <b>PASSAMONTI</b>_COMMUNICATION
+📞 <a href="tel:112">112</a> Emergenze  
+<br>
+<b>PASSAMONTI</b>_COMMUNICATION
+</div>
+
 </div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <script>
 
-// ===== CONFIG =====
-const RAGGIO = 1;
-
-// ===== MAPPA =====
-let map = L.map('map');
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-
-const bounds = [[38.8,8.0],[41.3,10.0]];
-map.setMaxBounds(bounds);
-
 // ===== DATI =====
 const POI = [
   {nome:"Su Nuraxi", lat:39.7, lon:9.0, categoria:"nuraghe"},
-  {nome:"Nuraghe Palmavera", lat:40.557, lon:8.319, categoria:"nuraghe"},
-  {nome:"Necropoli di Anghelu Ruju", lat:40.6, lon:8.29, categoria:"domus"},
-  {nome:"Coddu Vecchiu", lat:41.08, lon:9.38, categoria:"tomba"},
-  {nome:"Fenicottero rosa", lat:39.22, lon:9.14, categoria:"fauna"},
   {nome:"Bosa", lat:40.3, lon:8.5, categoria:"borgo"},
-  {nome:"Castelsardo", lat:40.92, lon:8.71, categoria:"borgo"}
+  {nome:"Fenicottero rosa", lat:39.22, lon:9.14, categoria:"fauna"}
 ];
 
-// ===== VARIABILI =====
-let userLat, userLon;
-let markers = [];
-let percorsoLine;
+// ===== VAR =====
 let categorieAttive = ["nuraghe","borgo"];
+let userLat, userLon;
+let map, markers=[];
 
-// ===== FILTRI CLICK =====
+// ===== FILTRI =====
 document.querySelectorAll(".filtro").forEach(btn=>{
-  btn.onclick = () => {
-    let cat = btn.dataset.cat;
+  btn.onclick=()=>{
+    let cat=btn.dataset.cat;
 
     if(categorieAttive.includes(cat)){
-      categorieAttive = categorieAttive.filter(c=>c!==cat);
+      categorieAttive=categorieAttive.filter(c=>c!==cat);
       btn.classList.remove("active");
     } else {
       categorieAttive.push(cat);
       btn.classList.add("active");
     }
-
-    aggiorna();
   };
 });
 
-// ===== UTILS =====
-function dist(a,b,c,d){
-  let R=6371;
-  let dLat=(c-a)*Math.PI/180;
-  let dLon=(d-b)*Math.PI/180;
-  let x=Math.sin(dLat/2)**2+
-    Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dLon/2)**2;
-  return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
-}
+// ===== GPS FLOW =====
+document.getElementById("gpsBtn").onclick = ()=>{
 
-function colore(cat){
-  return cat==="nuraghe"?"brown":
-         cat==="domus"?"purple":
-         cat==="tomba"?"black":
-         cat==="fauna"?"green":
-         cat==="borgo"?"blue":"gray";
-}
+  document.getElementById("loading").style.display="block";
 
-// ===== GPS =====
-navigator.geolocation.watchPosition(pos=>{
-  userLat = pos.coords.latitude;
-  userLon = pos.coords.longitude;
+  navigator.geolocation.getCurrentPosition(pos=>{
 
-  map.setView([userLat,userLon], 14);
+    userLat = pos.coords.latitude;
+    userLon = pos.coords.longitude;
+
+    avviaApp();
+
+  });
+};
+
+// ===== AVVIO APP =====
+function avviaApp(){
+
+  document.getElementById("screen1").style.display="none";
+  document.getElementById("screen2").style.display="block";
+
+  map = L.map('map').setView([userLat,userLon],14);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
   setTimeout(()=>map.invalidateSize(),300);
 
   aggiorna();
-});
+
+}
 
 // ===== UPDATE =====
 function aggiorna(){
@@ -229,50 +235,39 @@ function aggiorna(){
   markers.forEach(m=>map.removeLayer(m));
   markers=[];
 
-  if(percorsoLine) map.removeLayer(percorsoLine);
-
-  let lista = document.getElementById("menuPoi");
+  let lista=document.getElementById("menuPoi");
   lista.innerHTML="";
 
-  let vicini = POI.filter(p=>{
-    return dist(userLat,userLon,p.lat,p.lon)<=RAGGIO &&
-      (categorieAttive.length===0 || categorieAttive.includes(p.categoria));
+  POI.forEach(p=>{
+
+    if(categorieAttive.length===0 || categorieAttive.includes(p.categoria)){
+
+      let m=L.circleMarker([p.lat,p.lon]).addTo(map);
+      markers.push(m);
+
+      m.on("click",()=>apriScheda(p));
+
+      let div=document.createElement("div");
+      div.className="poi-item";
+      div.innerText=p.nome;
+      div.onclick=()=>apriScheda(p);
+
+      lista.appendChild(div);
+    }
   });
-
-  vicini.forEach(p=>{
-    let m = L.circleMarker([p.lat,p.lon], {
-      radius:7,
-      color:colore(p.categoria)
-    }).addTo(map);
-
-    markers.push(m);
-
-    m.on("click",()=>apriScheda(p));
-
-    let div=document.createElement("div");
-    div.className="poi-item";
-    div.innerText=p.nome;
-    div.onclick=()=>apriScheda(p);
-    lista.appendChild(div);
-  });
-
-  generaPercorso(vicini);
 }
 
 // ===== SCHEDA =====
 function apriScheda(p){
 
-  let sheet=document.getElementById("sheet");
-  sheet.classList.add("active");
+  document.getElementById("sheet").classList.add("active");
 
   document.getElementById("titolo").innerText=p.nome;
-  document.getElementById("descrizione").innerText="Caricamento...";
 
   fetch(`https://it.wikipedia.org/api/rest_v1/page/summary/${p.nome}`)
   .then(r=>r.json())
   .then(d=>{
-    document.getElementById("descrizione").innerText =
-      d.extract || "Informazioni non disponibili";
+    document.getElementById("descrizione").innerText=d.extract;
   });
 
   document.getElementById("vai").onclick=()=>{
@@ -284,21 +279,6 @@ function apriScheda(p){
 function toggleMenu(){
   let m=document.getElementById("menuPoi");
   m.style.display = m.style.display==="none"?"block":"none";
-}
-
-// ===== PERCORSI =====
-function generaPercorso(lista){
-
-  if(lista.length<2) return;
-
-  let percorso = lista.sort((a,b)=>{
-    return dist(userLat,userLon,a.lat,a.lon) -
-           dist(userLat,userLon,b.lat,b.lon);
-  }).slice(0,4);
-
-  let coords = percorso.map(p=>[p.lat,p.lon]);
-
-  percorsoLine = L.polyline(coords, {color:"red"}).addTo(map);
 }
 
 </script>
