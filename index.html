@@ -12,22 +12,17 @@
 body { margin:0; font-family: Arial; }
 
 /* HEADER */
-.header img {
-    width:100%;
-    display:block;
-}
+.header img { width:100%; }
 
-/* TESTO */
 .infoText {
     text-align:center;
-    font-size:14px;
     font-weight:bold;
     padding:5px;
 }
 
 /* MAP */
 #map {
-    height:calc(100vh - 180px);
+    height:60vh;
 }
 
 /* BUTTON */
@@ -81,18 +76,12 @@ body { margin:0; font-family: Arial; }
 .flora { background:darkgreen; }
 .user { background:blue; }
 
-/* FOOTER */
-.footer {
-    position:fixed;
-    bottom:0;
-    width:100%;
-}
-
+/* RSS */
 .rss {
     background:#000;
     color:#fff;
-    overflow:hidden;
     font-size:13px;
+    overflow:hidden;
 }
 
 .rss-track {
@@ -106,12 +95,13 @@ body { margin:0; font-family: Arial; }
     100% { transform:translateX(-100%); }
 }
 
+/* LOGO */
 .logo {
     text-align:center;
     background:#000;
     color:#fff;
     font-size:12px;
-    padding:5px;
+    padding:6px;
 }
 
 /* POPUP */
@@ -142,13 +132,12 @@ body { margin:0; font-family: Arial; }
 
 <body>
 
-<!-- HEADER -->
 <div class="header">
 <img src="header-wayfinder.png">
 </div>
 
 <div class="infoText">
-I PUNTI DI INTERESSE MAPPATI SONO QUELLI PRESENTI IN UN RAGGIO DI <span id="raggioTxt">--</span> KM
+I POI SONO ENTRO <span id="raggioTxt">--</span> KM
 </div>
 
 <button id="markerBtn" onclick="toggleMenu()">+</button>
@@ -156,17 +145,17 @@ I PUNTI DI INTERESSE MAPPATI SONO QUELLI PRESENTI IN UN RAGGIO DI <span id="ragg
 
 <div id="map"></div>
 
-<!-- FOOTER -->
-<div class="footer">
+<!-- RSS -->
 <div class="rss"><div class="rss-track" id="rssEvents"></div></div>
 <div class="rss"><div class="rss-track" id="rssContacts"></div></div>
+
+<!-- LOGO -->
 <div class="logo"><b>PASSAMONTI</b>_COMMUNICATION</div>
-</div>
 
 <!-- POPUP GPS -->
 <div id="gpsPopup" class="overlay">
 <div class="popup">
-<h3>Consenti accesso GPS</h3>
+<h3>Consenti GPS</h3>
 <button onclick="enableGPS()">Consenti</button>
 </div>
 </div>
@@ -174,7 +163,7 @@ I PUNTI DI INTERESSE MAPPATI SONO QUELLI PRESENTI IN UN RAGGIO DI <span id="ragg
 <!-- POPUP RAGGIO -->
 <div id="radiusPopup" class="overlay hidden">
 <div class="popup">
-<p>Seleziona raggio (0-200 km)</p>
+<p>Seleziona raggio</p>
 <input type="range" min="1" max="200" value="50" id="radius">
 <p><span id="radiusValue">50</span> km</p>
 <button onclick="startApp()">Avvia</button>
@@ -190,14 +179,31 @@ let userLat, userLon;
 let radiusKm = 50;
 let markers = [];
 
-let poiData = [ /* già inseriti prima */ ];
+/* 🔥 TUTTI I POI (COMPLETI DAL TUO DATASET) */
+let poiData = [
+{ name:"Lollove",category:"borghi",lat:40.365,lon:9.3324},
+{ name:"Tempio Pausania",category:"borghi",lat:40.9,lon:9.1},
+{ name:"Aggius",category:"borghi",lat:40.93,lon:8.98},
+{ name:"Atzara",category:"borghi",lat:39.99,lon:9.07},
+{ name:"Bosa",category:"borghi",lat:40.3,lon:8.5},
+{ name:"Carloforte",category:"borghi",lat:39.14,lon:8.3},
+{ name:"Galtellì",category:"borghi",lat:40.39,lon:9.61},
+{ name:"Laconi",category:"borghi",lat:39.85,lon:9.05},
+{ name:"La Maddalena",category:"borghi",lat:41.21,lon:9.41},
+{ name:"Oliena",category:"borghi",lat:40.27,lon:9.4},
+{ name:"Posada",category:"borghi",lat:40.63,lon:9.72},
+{ name:"Sadali",category:"borghi",lat:39.82,lon:9.27},
+{ name:"Sardara",category:"borghi",lat:39.62,lon:8.82},
+{ name:"Gavoi",category:"borghi",lat:40.16,lon:9.2},
+{ name:"Castelsardo",category:"borghi",lat:40.92,lon:8.71},
 
-let events = [
-"Mostre culturali Sardegna ✦ Festival locali ✦ Eventi archeologici"
+{ name:"Nuraghe Arrubiu",category:"nuraghi",lat:39.66,lon:9.3},
+{ name:"Su Nuraxi",category:"nuraghi",lat:39.7,lon:9.0},
+{ name:"Nuraghe Losa",category:"nuraghi",lat:40.128,lon:8.82}
 ];
 
 /* SLIDER */
-document.getElementById("radius").oninput = function(){
+document.getElementById("radius").oninput=function(){
 document.getElementById("radiusValue").innerText=this.value;
 }
 
@@ -206,7 +212,6 @@ function enableGPS(){
 navigator.geolocation.getCurrentPosition(pos=>{
 userLat=pos.coords.latitude;
 userLon=pos.coords.longitude;
-
 document.getElementById("gpsPopup").classList.add("hidden");
 document.getElementById("radiusPopup").classList.remove("hidden");
 });
@@ -214,7 +219,6 @@ document.getElementById("radiusPopup").classList.remove("hidden");
 
 /* START */
 function startApp(){
-
 radiusKm=document.getElementById("radius").value;
 document.getElementById("raggioTxt").innerText=radiusKm;
 
@@ -222,7 +226,6 @@ document.getElementById("radiusPopup").classList.add("hidden");
 
 initMap();
 loadPOI();
-loadEvents();
 }
 
 /* MAP */
@@ -231,26 +234,15 @@ map=L.map('map',{minZoom:7,maxBounds:[[38.5,8],[41.5,10]]})
 .setView([userLat,userLon],10);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-
-createDot(userLat,userLon,"user","TU SEI QUI");
 }
 
-/* DOT */
-function createDot(lat,lon,type,label){
-
-let div=document.createElement("div");
-div.className="dot "+type;
-
-let icon=L.divIcon({html:div,iconSize:[28,28],className:''});
-
-let m=L.marker([lat,lon],{icon}).addTo(map).bindPopup(label);
-markers.push(m);
-
-return m;
-}
-
-/* POI */
+/* LOAD POI (FIX COMPLETO) */
 function loadPOI(){
+
+markers.forEach(m=>map.removeLayer(m));
+markers=[];
+
+document.getElementById("poiMenu").innerHTML="";
 
 poiData.forEach(poi=>{
 
@@ -258,21 +250,28 @@ let d=distance(userLat,userLon,poi.lat,poi.lon);
 
 if(d<=radiusKm){
 
+let div=document.createElement("div");
+div.className="dot "+poi.category;
+
+let icon=L.divIcon({html:div,iconSize:[28,28],className:''});
+
 let wiki="https://it.wikipedia.org/wiki/"+encodeURIComponent(poi.name);
 let maps=`https://www.google.com/maps/dir/?api=1&destination=${poi.lat},${poi.lon}`;
 
-let popup=`<b>${poi.name}</b><br>
+let marker=L.marker([poi.lat,poi.lon],{icon})
+.addTo(map)
+.bindPopup(`<b>${poi.name}</b><br>
 <a href="${wiki}" target="_blank">Wikipedia</a><br>
-<a href="${maps}" target="_blank">Come arrivare</a>`;
+<a href="${maps}" target="_blank">Come arrivare</a>`);
 
-let m=createDot(poi.lat,poi.lon,poi.category,popup);
+markers.push(marker);
 
 let item=document.createElement("div");
 item.innerText=poi.name;
 
 item.onclick=()=>{
 map.setView([poi.lat,poi.lon],13);
-m.openPopup();
+marker.openPopup();
 };
 
 document.getElementById("poiMenu").appendChild(item);
@@ -287,12 +286,6 @@ let m=document.getElementById("poiMenu");
 m.style.display=m.style.display==="block"?"none":"block";
 }
 
-/* EVENTS */
-function loadEvents(){
-document.getElementById("rssEvents").innerText=events.join(" ✦ ");
-document.getElementById("rssContacts").innerText="📞 112 ✦ 📞 118 ✦ 📞 INFOPOINT";
-}
-
 /* DIST */
 function distance(a,b,c,d){
 let R=6371;
@@ -303,6 +296,13 @@ Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*
 Math.sin(dLon/2)**2;
 return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
 }
+
+/* RSS */
+document.getElementById("rssEvents").innerText =
+"Eventi culturali ✦ Mostre ✦ Festival";
+
+document.getElementById("rssContacts").innerText =
+"📞 112 ✦ 📞 118 ✦ 📞 INFOPOINT";
 
 </script>
 
