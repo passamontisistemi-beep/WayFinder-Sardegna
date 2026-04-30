@@ -1,4 +1,4 @@
-<!-- WF_SARDEGNA_V7_ISTITUZIONALE -->
+<!-- WF_SARDEGNA_V8_FIX_POI_MENU -->
 
 <!DOCTYPE html>
 <html lang="it">
@@ -11,14 +11,9 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 
 <style>
-body {
-  margin:0;
-  font-family: Arial, sans-serif;
-  background:#ffffff;
-  color:#222;
-}
+body { margin:0; font-family:Arial; }
 
-/* ===== SCREEN 1 ===== */
+/* SCREEN 1 */
 #screen1 {
   height:100vh;
   display:flex;
@@ -26,70 +21,78 @@ body {
   justify-content:center;
   align-items:center;
   text-align:center;
-  padding:20px;
 }
 
 #gpsBtn {
-  padding:14px 22px;
-  background:#000;
-  color:#fff;
+  padding:15px;
+  background:black;
+  color:white;
   border:none;
-  border-radius:8px;
-  font-size:16px;
+  border-radius:10px;
 }
 
+/* FILTRI */
 #filtri {
-  margin-top:20px;
   display:flex;
   flex-wrap:wrap;
   gap:8px;
   justify-content:center;
+  margin-top:20px;
 }
 
 .filtro {
   padding:8px 12px;
   border-radius:20px;
-  font-size:12px;
-  color:#fff;
+  color:white;
   opacity:0.5;
 }
 
 .filtro.active {
   opacity:1;
-  border:2px solid #000;
+  border:2px solid black;
 }
 
-/* ===== SCREEN 2 ===== */
+/* SCREEN 2 */
 #screen2 { display:none; }
 
-header {
-  text-align:center;
-  padding:10px;
-  font-weight:bold;
-  border-bottom:1px solid #eee;
+#map { height:100vh; }
+
+/* 🔴 PULSANTE MENU */
+#menuBtn {
+  position:absolute;
+  top:20px;
+  right:20px;
+  background:red;
+  color:white;
+  border-radius:50%;
+  width:60px;
+  height:60px;
+  font-size:24px;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  cursor:pointer;
+  z-index:1000;
+  animation:pulse 1.5s infinite;
 }
 
-#map {
-  height:68vh;
+@keyframes pulse {
+  0% { transform:scale(1); }
+  50% { transform:scale(1.1); }
+  100% { transform:scale(1); }
 }
 
-#info {
-  text-align:center;
-  font-size:13px;
-  padding:6px;
-}
-
-/* MENU */
+/* MENU POI */
 #menuPoi {
   position:absolute;
-  top:120px;
-  right:10px;
-  width:240px;
-  max-height:260px;
+  top:90px;
+  right:20px;
+  width:260px;
+  max-height:350px;
   overflow:auto;
-  background:#fff;
-  border-radius:10px;
-  box-shadow:0 4px 10px rgba(0,0,0,0.2);
+  background:white;
+  border-radius:12px;
+  box-shadow:0 4px 12px rgba(0,0,0,0.3);
   display:none;
   z-index:1000;
 }
@@ -97,6 +100,7 @@ header {
 .poi-item {
   padding:10px;
   border-bottom:1px solid #eee;
+  cursor:pointer;
 }
 
 /* SHEET */
@@ -104,88 +108,51 @@ header {
   position:fixed;
   bottom:-100%;
   width:100%;
-  background:#fff;
+  background:white;
   padding:15px;
-  border-top-left-radius:20px;
-  border-top-right-radius:20px;
-  box-shadow:0 -4px 15px rgba(0,0,0,0.2);
   transition:0.3s;
 }
 
 #sheet.active { bottom:0; }
 
-#vai {
-  width:100%;
-  padding:12px;
-  background:#000;
-  color:#fff;
-  border:none;
-  border-radius:8px;
-}
-
-/* FOOTER */
 .footer {
   position:fixed;
   bottom:0;
   width:100%;
   text-align:center;
   font-size:12px;
-  background:#fff;
-  border-top:1px solid #eee;
-  padding:5px;
+  background:white;
 }
 </style>
 </head>
 
 <body>
 
-<!-- ===== SCREEN 1 ===== -->
+<!-- SCREEN 1 -->
 <div id="screen1">
 
 <h2>WayFinder Sardegna</h2>
 
-<p>
-Attiva la geolocalizzazione per visualizzare i punti di interesse culturali presenti nel territorio circostante.
-</p>
-
-<button id="gpsBtn">Attiva posizione GPS</button>
+<button id="gpsBtn">Attiva GPS</button>
 
 <div id="filtri">
-  <div class="filtro active" data-cat="nuraghe" style="background:#7b4b2a">Nuraghi</div>
-  <div class="filtro active" data-cat="borgo" style="background:#1e88e5">Borghi</div>
-  <div class="filtro" data-cat="domus" style="background:#8e24aa">Domus</div>
-  <div class="filtro" data-cat="tomba" style="background:#424242">Tombe</div>
-  <div class="filtro" data-cat="fauna" style="background:#43a047">Fauna</div>
-  <div class="filtro" data-cat="pozzo" style="background:#fb8c00">Pozzi sacri</div>
+  <div class="filtro active" data-cat="nuraghe" style="background:brown">Nuraghi</div>
+  <div class="filtro active" data-cat="borgo" style="background:blue">Borghi</div>
+  <div class="filtro" data-cat="domus" style="background:purple">Domus</div>
+  <div class="filtro" data-cat="tomba" style="background:black">Tombe</div>
+  <div class="filtro" data-cat="fauna" style="background:green">Fauna</div>
+  <div class="filtro" data-cat="pozzo" style="background:orange">Pozzi sacri</div>
 </div>
 
 </div>
 
-<!-- ===== SCREEN 2 ===== -->
+<!-- SCREEN 2 -->
 <div id="screen2">
 
-<header>WAYFINDER SARDEGNA</header>
-
-<div id="info">
-I punti di interesse mappati sono quelli presenti in un raggio di 1 km
-</div>
-
-<button onclick="toggleMenu()">Elenco POI</button>
-
+<div id="menuBtn">+</div>
 <div id="menuPoi"></div>
+
 <div id="map"></div>
-
-<div id="sheet">
-  <h3 id="titolo"></h3>
-  <p id="descrizione"></p>
-  <button id="vai">Indicazioni stradali</button>
-</div>
-
-<div class="footer">
-📞 <a href="tel:112">112</a> Emergenze  
-<br>
-<b>PASSAMONTI</b>_COMMUNICATION
-</div>
 
 </div>
 
@@ -193,129 +160,140 @@ I punti di interesse mappati sono quelli presenti in un raggio di 1 km
 
 <script>
 
-// ===== DATI (ESEMPIO STRUTTURATO) =====
+// ===== DATI (USA QUI TUTTI I TUOI EXCEL) =====
 const POI = [
-  {nome:"Su Nuraxi", lat:39.7, lon:9.0, categoria:"nuraghe"},
   {nome:"Bosa", lat:40.3, lon:8.5, categoria:"borgo"},
+  {nome:"Castelsardo", lat:40.92, lon:8.71, categoria:"borgo"},
+  {nome:"Su Nuraxi", lat:39.7, lon:9.0, categoria:"nuraghe"},
+  {nome:"Palmavera", lat:40.557, lon:8.319, categoria:"nuraghe"},
   {nome:"Anghelu Ruju", lat:40.6, lon:8.29, categoria:"domus"},
   {nome:"Coddu Vecchiu", lat:41.08, lon:9.38, categoria:"tomba"},
   {nome:"Fenicottero rosa", lat:39.22, lon:9.14, categoria:"fauna"}
 ];
 
 // ===== VAR =====
-let categorieAttive = ["nuraghe","borgo"];
 let map, userMarker;
-let markers = [];
+let markers = {};
+let categorieAttive = ["nuraghe","borgo"];
+
+// ===== COLORI =====
+function colore(cat){
+  return cat==="nuraghe"?"brown":
+         cat==="domus"?"purple":
+         cat==="tomba"?"black":
+         cat==="fauna"?"green":
+         cat==="borgo"?"blue":
+         cat==="pozzo"?"orange":"gray";
+}
 
 // ===== FILTRI =====
 document.querySelectorAll(".filtro").forEach(btn=>{
-  btn.onclick = ()=>{
-    let cat = btn.dataset.cat;
+  btn.onclick=()=>{
+    let cat=btn.dataset.cat;
 
     if(categorieAttive.includes(cat)){
-      categorieAttive = categorieAttive.filter(c=>c!==cat);
+      categorieAttive=categorieAttive.filter(c=>c!==cat);
       btn.classList.remove("active");
     } else {
       categorieAttive.push(cat);
       btn.classList.add("active");
     }
+
+    aggiornaVisibilità();
   };
 });
 
 // ===== GPS =====
-document.getElementById("gpsBtn").onclick = ()=>{
+document.getElementById("gpsBtn").onclick=()=>{
 
   navigator.geolocation.getCurrentPosition(pos=>{
 
-    let lat = pos.coords.latitude;
-    let lon = pos.coords.longitude;
+    let lat=pos.coords.latitude;
+    let lon=pos.coords.longitude;
 
     document.getElementById("screen1").style.display="none";
     document.getElementById("screen2").style.display="block";
 
-    map = L.map('map').setView([lat,lon],14);
+    map=L.map('map').setView([lat,lon],10);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-    setTimeout(()=>map.invalidateSize(),300);
-
     // TU SEI QUI
-    userMarker = L.circleMarker([lat,lon],{
+    userMarker=L.circleMarker([lat,lon],{
       radius:10,
       color:"red"
     }).addTo(map).bindPopup("Tu sei qui").openPopup();
 
-    aggiorna(lat,lon);
+    caricaPOI();
+    creaMenu();
 
   });
 };
 
-// ===== DISTANZA =====
-function dist(a,b,c,d){
-  let R=6371;
-  let dLat=(c-a)*Math.PI/180;
-  let dLon=(d-b)*Math.PI/180;
-  let x=Math.sin(dLat/2)**2+
-    Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dLon/2)**2;
-  return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
-}
-
-// ===== UPDATE =====
-function aggiorna(lat,lon){
-
-  markers.forEach(m=>map.removeLayer(m));
-  markers=[];
-
-  let lista=document.getElementById("menuPoi");
-  lista.innerHTML="";
+// ===== CREA POI =====
+function caricaPOI(){
 
   POI.forEach(p=>{
 
-    if((categorieAttive.length===0 || categorieAttive.includes(p.categoria))
-       && dist(lat,lon,p.lat,p.lon)<=1){
+    let m=L.circleMarker([p.lat,p.lon],{
+      radius:6,
+      color:colore(p.categoria)
+    }).addTo(map);
 
-      let m=L.circleMarker([p.lat,p.lon],{
-        radius:6,
-        color:"#1565c0"
-      }).addTo(map);
+    markers[p.nome]=m;
 
-      markers.push(m);
+    m.on("click",()=>highlightPOI(p));
+  });
 
-      m.on("click",()=>apriScheda(p));
+}
 
-      let div=document.createElement("div");
-      div.className="poi-item";
-      div.innerText=p.nome;
-      div.onclick=()=>apriScheda(p);
+// ===== VISIBILITÀ =====
+function aggiornaVisibilità(){
 
-      lista.appendChild(div);
+  POI.forEach(p=>{
+    let m=markers[p.nome];
+
+    if(categorieAttive.length===0 || categorieAttive.includes(p.categoria)){
+      map.addLayer(m);
+    } else {
+      map.removeLayer(m);
     }
   });
 }
 
-// ===== SCHEDA =====
-function apriScheda(p){
+// ===== MENU =====
+function creaMenu(){
 
-  document.getElementById("sheet").classList.add("active");
+  let menu=document.getElementById("menuPoi");
 
-  document.getElementById("titolo").innerText=p.nome;
+  POI.forEach(p=>{
+    let div=document.createElement("div");
+    div.className="poi-item";
+    div.innerText=p.nome;
 
-  fetch(`https://it.wikipedia.org/api/rest_v1/page/summary/${p.nome}`)
-  .then(r=>r.json())
-  .then(d=>{
-    document.getElementById("descrizione").innerText =
-      d.extract || "Informazioni non disponibili";
+    div.onclick=()=>highlightPOI(p);
+
+    menu.appendChild(div);
   });
-
-  document.getElementById("vai").onclick=()=>{
-    window.open(`https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lon}`);
-  }
 }
 
-// ===== MENU =====
-function toggleMenu(){
+document.getElementById("menuBtn").onclick=()=>{
   let m=document.getElementById("menuPoi");
-  m.style.display = m.style.display==="none"?"block":"none";
+  m.style.display=m.style.display==="none"?"block":"none";
+};
+
+// ===== HIGHLIGHT =====
+function highlightPOI(p){
+
+  let m=markers[p.nome];
+
+  map.setView([p.lat,p.lon],14);
+
+  m.setStyle({radius:10,color:"yellow"});
+
+  setTimeout(()=>{
+    m.setStyle({radius:6,color:colore(p.categoria)});
+  },2000);
 }
 
 </script>
