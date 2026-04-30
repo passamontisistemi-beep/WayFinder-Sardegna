@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>WayFinder Sardegna</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
@@ -10,54 +11,78 @@
 <style>
 body { margin:0; font-family:Arial; }
 
-/* SCREEN 1 */
+/* ===== SCREEN 1 ===== */
 #screen1 {
   height:100vh;
   display:flex;
   flex-direction:column;
   justify-content:center;
   align-items:center;
+  text-align:center;
+  padding:20px;
 }
 
 #gpsBtn {
-  padding:15px;
+  padding:16px 24px;
   background:black;
   color:white;
   border:none;
   border-radius:10px;
+  font-size:16px;
 }
 
-/* SCREEN 2 */
+/* LEGENDA */
+#legenda {
+  margin-top:20px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  justify-content:center;
+}
+
+.legenda-item {
+  padding:6px 10px;
+  border-radius:20px;
+  color:white;
+  font-size:12px;
+}
+
+/* ===== SCREEN 2 ===== */
 #screen2 { display:none; }
+
 #map { height:100vh; }
 
-/* PULSANTE ROSSO */
+/* 🔴 MARKER + SUPER ANIMATO */
 #menuBtn {
   position:absolute;
   top:20px;
   right:20px;
-  background:red;
-  width:60px;
-  height:60px;
+  width:75px;
+  height:75px;
   border-radius:50%;
+  background:red;
   color:white;
+  font-size:28px;
   display:flex;
   justify-content:center;
   align-items:center;
-  font-size:24px;
+  cursor:pointer;
   z-index:1000;
+
+  box-shadow:0 0 0 rgba(255,0,0,0.7);
   animation:pulse 1.5s infinite;
 }
 
 @keyframes pulse {
-  0% {transform:scale(1);}
-  50% {transform:scale(1.1);}
-  100% {transform:scale(1);}
+  0% { transform:scale(1); box-shadow:0 0 0 0 rgba(255,0,0,0.7);}
+  70% { transform:scale(1.15); box-shadow:0 0 25px 15px rgba(255,0,0,0);}
+  100% { transform:scale(1); box-shadow:0 0 0 0 rgba(255,0,0,0);}
 }
 
+/* MENU */
 #menuPoi {
   position:absolute;
-  top:90px;
+  top:100px;
   right:20px;
   width:260px;
   max-height:400px;
@@ -77,78 +102,62 @@ body { margin:0; font-family:Arial; }
 
 <body>
 
+<!-- ===== HOMEPAGE ===== -->
 <div id="screen1">
-  <h2>WayFinder Sardegna</h2>
-  <button id="gpsBtn">Attiva GPS</button>
+
+<h2>WayFinder Sardegna</h2>
+
+<p>Attiva la geolocalizzazione per scoprire i punti di interesse intorno a te</p>
+
+<button id="gpsBtn">Attiva GPS</button>
+
+<div id="legenda">
+  <div class="legenda-item" style="background:brown">Nuraghi</div>
+  <div class="legenda-item" style="background:blue">Borghi</div>
+  <div class="legenda-item" style="background:purple">Domus</div>
+  <div class="legenda-item" style="background:black">Tombe</div>
+  <div class="legenda-item" style="background:green">Fauna</div>
 </div>
 
+</div>
+
+<!-- ===== MAPPA ===== -->
 <div id="screen2">
-  <div id="menuBtn">+</div>
-  <div id="menuPoi"></div>
-  <div id="map"></div>
+
+<div id="menuBtn">+</div>
+<div id="menuPoi"></div>
+
+<div id="map"></div>
+
 </div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <script>
 
-// ===== DATASET COMPLETO =====
+// ===== DATI (estratto reale) =====
 const POI = [
-
-/* ===== BORGHI ===== */
-{nome:"Lollove", lat:40.3650, lon:9.3324, categoria:"borgo"},
-{nome:"Tempio Pausania", lat:40.9, lon:9.1, categoria:"borgo"},
-{nome:"Aggius", lat:40.93, lon:8.98, categoria:"borgo"},
-{nome:"Atzara", lat:39.99, lon:9.07, categoria:"borgo"},
 {nome:"Bosa", lat:40.3, lon:8.5, categoria:"borgo"},
-{nome:"Carloforte", lat:39.14, lon:8.3, categoria:"borgo"},
-{nome:"Galtellì", lat:40.39, lon:9.61, categoria:"borgo"},
-{nome:"Laconi", lat:39.85, lon:9.05, categoria:"borgo"},
-{nome:"La Maddalena", lat:41.21, lon:9.41, categoria:"borgo"},
-{nome:"Oliena", lat:40.27, lon:9.4, categoria:"borgo"},
-{nome:"Posada", lat:40.63, lon:9.72, categoria:"borgo"},
-{nome:"Sadali", lat:39.82, lon:9.27, categoria:"borgo"},
-{nome:"Sardara", lat:39.62, lon:8.82, categoria:"borgo"},
-{nome:"Gavoi", lat:40.16, lon:9.2, categoria:"borgo"},
-{nome:"Castelsardo", lat:40.92, lon:8.71, categoria:"borgo"},
-
-/* ===== NURAGHI ===== */
-{nome:"Nuraghe Majori", lat:40.9, lon:9.1, categoria:"nuraghe"},
-{nome:"Nuraghe Palmavera", lat:40.557, lon:8.319, categoria:"nuraghe"},
-{nome:"Santu Antine", lat:40.421, lon:8.735, categoria:"nuraghe"},
-{nome:"Serra Orrios", lat:40.292, lon:9.588, categoria:"nuraghe"},
-{nome:"Nuraghe Losa", lat:40.128, lon:8.82, categoria:"nuraghe"},
 {nome:"Su Nuraxi", lat:39.7, lon:9.0, categoria:"nuraghe"},
-{nome:"Nuraghe Arrubiu", lat:39.66, lon:9.3, categoria:"nuraghe"},
-
-/* ===== TOMBE ===== */
-{nome:"Coddu Vecchiu", lat:41.08, lon:9.38, categoria:"tomba"},
-{nome:"Li Lolghi", lat:41.07, lon:9.37, categoria:"tomba"},
-{nome:"Li Mizzani", lat:41.18, lon:9.38, categoria:"tomba"},
-{nome:"S'Ena e Thomes", lat:40.28, lon:9.58, categoria:"tomba"},
-{nome:"Madau", lat:40.12, lon:9.26, categoria:"tomba"},
-{nome:"Is Concias", lat:39.25, lon:9.22, categoria:"tomba"},
-
-/* ===== DOMUS ===== */
 {nome:"Anghelu Ruju", lat:40.6, lon:8.29, categoria:"domus"},
-{nome:"Sant'Andrea Priu", lat:40.43, lon:8.77, categoria:"domus"},
-{nome:"Montessu", lat:39.11, lon:8.67, categoria:"domus"},
-{nome:"Mesu e Montes", lat:40.67, lon:8.6, categoria:"domus"},
-{nome:"Su Crucifissu Mannu", lat:40.83, lon:8.4, categoria:"domus"},
-
-/* ===== FAUNA ===== */
-{nome:"Fenicottero rosa", lat:39.22, lon:9.14, categoria:"fauna"},
-{nome:"Cervo sardo", lat:39.18, lon:8.93, categoria:"fauna"},
-{nome:"Grifone", lat:40.28, lon:8.47, categoria:"fauna"},
-{nome:"Aquila reale", lat:40.02, lon:9.32, categoria:"fauna"},
-{nome:"Muflone", lat:40.03, lon:9.68, categoria:"fauna"}
-
+{nome:"Coddu Vecchiu", lat:41.08, lon:9.38, categoria:"tomba"},
+{nome:"Fenicottero rosa", lat:39.22, lon:9.14, categoria:"fauna"}
 ];
 
-// ===== VAR =====
 let map, userMarker;
 let markers = {};
 let selected = null;
+let userLat, userLon;
+
+// ===== DISTANZA =====
+function distanza(a,b,c,d){
+  let R=6371;
+  let dLat=(c-a)*Math.PI/180;
+  let dLon=(d-b)*Math.PI/180;
+  let x=Math.sin(dLat/2)**2+
+    Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
+}
 
 // ===== COLORI =====
 function colore(cat){
@@ -164,19 +173,23 @@ document.getElementById("gpsBtn").onclick = ()=>{
 
   navigator.geolocation.getCurrentPosition(pos=>{
 
+    userLat = pos.coords.latitude;
+    userLon = pos.coords.longitude;
+
     document.getElementById("screen1").style.display="none";
     document.getElementById("screen2").style.display="block";
 
-    map = L.map('map').setView([40.1,9],8);
+    map = L.map('map').setView([userLat,userLon],13);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-    // utente
-    userMarker = L.circleMarker([pos.coords.latitude,pos.coords.longitude],{
-      radius:10,
-      color:"red",
+    // TU SEI QUI GRANDE
+    userMarker = L.circleMarker([userLat,userLon],{
+      radius:14,
+      color:"white",
       fillColor:"red",
-      fillOpacity:1
+      fillOpacity:1,
+      weight:3
     }).addTo(map).bindPopup("Tu sei qui").openPopup();
 
     caricaPOI();
@@ -185,19 +198,25 @@ document.getElementById("gpsBtn").onclick = ()=>{
   });
 };
 
-// ===== CREA MARKER =====
+// ===== CARICA POI (1 KM) =====
 function caricaPOI(){
+
   POI.forEach(p=>{
-    let m = L.circleMarker([p.lat,p.lon],{
-      radius:6,
-      color:colore(p.categoria),
-      fillColor:colore(p.categoria),
-      fillOpacity:1
-    }).addTo(map);
 
-    markers[p.nome]=m;
+    if(distanza(userLat,userLon,p.lat,p.lon)<=1){
 
-    m.on("click",()=>seleziona(p));
+      let m = L.circleMarker([p.lat,p.lon],{
+        radius:7,
+        color:colore(p.categoria),
+        fillColor:colore(p.categoria),
+        fillOpacity:1
+      }).addTo(map);
+
+      markers[p.nome]=m;
+
+      m.on("click",()=>seleziona(p));
+    }
+
   });
 }
 
@@ -206,20 +225,25 @@ function creaMenu(){
   let menu=document.getElementById("menuPoi");
 
   POI.forEach(p=>{
-    let div=document.createElement("div");
-    div.className="poi-item";
-    div.innerText=p.nome;
-    div.onclick=()=>seleziona(p);
-    menu.appendChild(div);
+    if(distanza(userLat,userLon,p.lat,p.lon)<=1){
+
+      let div=document.createElement("div");
+      div.className="poi-item";
+      div.innerText=p.nome;
+      div.onclick=()=>seleziona(p);
+      menu.appendChild(div);
+
+    }
   });
 }
 
+// ===== TOGGLE MENU =====
 document.getElementById("menuBtn").onclick=()=>{
   let m=document.getElementById("menuPoi");
   m.style.display = m.style.display==="none"?"block":"none";
 };
 
-// ===== SELEZIONE =====
+// ===== SELEZIONE + POPUP =====
 function seleziona(p){
 
   if(selected){
@@ -227,21 +251,33 @@ function seleziona(p){
     old.setStyle({
       fillColor:colore(selected.categoria),
       color:colore(selected.categoria),
-      radius:6
+      radius:7
     });
   }
 
   let m=markers[p.nome];
 
-  map.setView([p.lat,p.lon],13);
+  map.setView([p.lat,p.lon],15);
 
   m.setStyle({
     fillColor:"red",
     color:"red",
-    radius:10
+    radius:12
   });
 
   selected=p;
+
+  let wiki = encodeURIComponent(p.nome.replace(/ /g,"_"));
+  let wikiURL = `https://it.wikipedia.org/wiki/${wiki}`;
+  let mapsURL = `https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lon}`;
+
+  let popup = `
+    <b>${p.nome}</b><br><br>
+    <a href="${wikiURL}" target="_blank">📖 Wikipedia</a><br><br>
+    <a href="${mapsURL}" target="_blank">📍 Portami qui</a>
+  `;
+
+  m.bindPopup(popup).openPopup();
 }
 
 </script>
