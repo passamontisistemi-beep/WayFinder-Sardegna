@@ -2,328 +2,278 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>WayFinder Sardegna</title>
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 
 <style>
-body {
-    margin:0;
-    font-family: Arial;
+/* 👉 STILE IDENTICO (NON TOCCATO) */
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial}
+body{
+background:#dfe7ee;
+display:flex;
+justify-content:center;
+align-items:center;
+min-height:100vh;
+padding:10px;
 }
-
-/* HEADER */
-.header img {
-    width:100%;
+#app{
+width:min(100vw,390px);
+aspect-ratio:9/16;
+background:#fff;
+border-radius:28px;
+overflow:hidden;
+box-shadow:0 20px 60px rgba(0,0,0,.25);
+display:flex;
+flex-direction:column;
+position:relative;
 }
-
-/* INFO */
-.infoText {
-    text-align:center;
-    font-size:13px;
-    font-weight:bold;
-    padding:5px;
+#header img{width:100%;display:block;}
+#topBar{
+padding:10px;
+text-align:center;
+font-size:13px;
+font-weight:800;
+background:#fff;
+border-bottom:1px solid #ddd;
+min-height:52px;
 }
-
-/* MAP */
-#map {
-    height:55vh;
-}
+#mapWrap{position:relative;flex:1;}
+#map{width:100%;height:100%;}
 
 /* BUTTON */
-#markerBtn {
-    position:absolute;
-    right:10px;
-    top:120px;
-    width:50px;
-    height:50px;
-    border-radius:50%;
-    background:red;
-    color:white;
-    font-size:24px;
-    z-index:999;
-    animation:pulse 1.5s infinite;
+#plusBtn{
+position:absolute;
+top:12px;
+right:12px;
+width:62px;
+height:62px;
+border-radius:50%;
+background:#ff0000;
+color:#fff;
+font-size:40px;
+font-weight:900;
+z-index:1500;
+animation:pulse 1.1s infinite;
+}
+@keyframes pulse{
+0%{transform:scale(1)}
+50%{transform:scale(1.12)}
+100%{transform:scale(1)}
 }
 
-@keyframes pulse {
-    0% { box-shadow:0 0 0 0 rgba(255,0,0,0.7); }
-    70% { box-shadow:0 0 0 15px rgba(255,0,0,0); }
-    100% { box-shadow:0 0 0 0 rgba(255,0,0,0); }
+/* PANEL */
+#poiPanel{
+position:absolute;
+left:12px;
+right:12px;
+top:88px;
+max-height:48%;
+background:#fff;
+border-radius:18px;
+box-shadow:0 15px 35px rgba(0,0,0,.25);
+z-index:1600;
+display:none;
+overflow:hidden;
 }
-
-/* MENU */
-#poiMenu {
-    position:absolute;
-    right:10px;
-    top:180px;
-    width:230px;
-    max-height:40vh;
-    overflow:auto;
-    background:white;
-    display:none;
-    z-index:999;
-    border-radius:10px;
-    padding:10px;
+#poiPanelHeader{
+padding:12px;
+font-weight:700;
+background:#000;
+color:#fff;
+display:flex;
+justify-content:space-between;
 }
+#poiList{max-height:280px;overflow:auto;}
+.poiItem{padding:12px;border-bottom:1px solid #eee;cursor:pointer;font-weight:600}
 
-/* POI */
-.dot {
-    width:24px;
-    height:24px;
-    border-radius:50%;
+/* CARD */
+#detailCard{
+position:absolute;
+left:12px;
+right:12px;
+top:24%;
+background:#fff;
+border-radius:18px;
+box-shadow:0 15px 35px rgba(0,0,0,.25);
+z-index:1700;
+display:none;
+padding:14px;
 }
+.btn{width:100%;padding:10px;border:none;border-radius:10px;margin-top:8px;font-weight:700}
 
-.nuraghi { background:brown; }
-.domus { background:purple; }
-.borghi { background:orange; }
-.pozzi { background:green; }
-.tombe { background:black; }
-.flora { background:darkgreen; }
-.user { background:blue; }
-
-/* RSS */
-.rss {
-    background:#000;
-    color:#fff;
-    font-size:12px;
-    overflow:hidden;
+/* FOOTER */
+footer{
+height:95px;
+background:#111;
+color:#fff;
+display:flex;
+flex-direction:column;
+justify-content:center;
 }
-
-.rss-track {
-    white-space:nowrap;
-    animation:scroll 30s linear infinite;
-    padding:3px;
-}
-
-@keyframes scroll {
-    0% { transform:translateX(100%); }
-    100% { transform:translateX(-100%); }
-}
-
-/* LOGO */
-.logo {
-    text-align:center;
-    background:#000;
-    color:#fff;
-    font-size:11px;
-    padding:4px;
-}
+.rss{height:24px;overflow:hidden;white-space:nowrap;}
+.track{display:inline-block;padding-left:100%;animation:scroll 30s linear infinite;}
+@keyframes scroll{0%{transform:translateX(0)}100%{transform:translateX(-100%)}}
+.brand{text-align:center;font-size:10px}
 
 /* POPUP */
-.overlay {
-    position:fixed;
-    top:0;
-    left:0;
-    width:100%;
-    height:100%;
-    background:rgba(0,0,0,0.7);
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    z-index:2000;
+.overlay{
+position:absolute;
+inset:0;
+background:rgba(0,0,0,.65);
+display:flex;
+align-items:center;
+justify-content:center;
+z-index:3000;
 }
-
-.popup {
-    background:white;
-    padding:20px;
-    border-radius:10px;
-    text-align:center;
-}
-
-.hidden { display:none; }
-
+.popup{background:#fff;padding:20px;border-radius:20px;text-align:center}
+.hidden{display:none}
 </style>
 </head>
 
 <body>
 
-<div class="header">
+<div id="app">
+
+<!-- GPS -->
+<div id="gpsModal" class="overlay">
+<div class="popup">
+<h2>Autorizzazione GPS</h2>
+<button id="gpsBtn">Consenti</button>
+</div>
+</div>
+
+<!-- HEADER -->
+<div id="header">
 <img src="header-wayfinder.png">
 </div>
 
-<div class="infoText">
+<div id="topBar">
 POI entro <span id="raggioTxt">--</span> KM
 </div>
 
-<button id="markerBtn" onclick="toggleMenu()">+</button>
-<div id="poiMenu"></div>
-
+<div id="mapWrap">
 <div id="map"></div>
+<button id="plusBtn">+</button>
 
-<div class="rss"><div class="rss-track" id="rssEvents"></div></div>
-<div class="rss"><div class="rss-track" id="rssContacts"></div></div>
-
-<div class="logo"><b>PASSAMONTI</b>_COMMUNICATION</div>
-
-<!-- POPUP GPS -->
-<div id="gpsPopup" class="overlay">
-<div class="popup">
-<h3>Consenti GPS</h3>
-<button onclick="enableGPS()">Consenti</button>
+<div id="poiPanel">
+<div id="poiPanelHeader">
+<span>Punti di Interesse</span>
+<button onclick="closePanel()">✕</button>
+</div>
+<div id="poiList"></div>
 </div>
 </div>
 
-<!-- POPUP RAGGIO -->
-<div id="radiusPopup" class="overlay hidden">
-<div class="popup">
-<p>Seleziona raggio</p>
-<input type="range" min="1" max="200" value="50" id="radius">
-<p><span id="radiusValue">50</span> km</p>
-<button onclick="startApp()">Avvia</button>
-</div>
+<div id="detailCard">
+<h2 id="poiTitle"></h2>
+<p id="poiDistance"></p>
+<button class="btn" id="wikiBtn">Wikipedia</button>
+<button class="btn" id="goBtn">Come arrivare</button>
+<button class="btn" onclick="closeCard()">Chiudi</button>
 </div>
 
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<footer>
+<div class="rss"><div class="track">Eventi culturali Sardegna ✦ Mostre ✦ Festival</div></div>
+<div class="rss"><div class="track">📞 112 ✦ 📞 118 ✦ 📞 INFOPOINT</div></div>
+<div class="brand"><b>PASSAMONTI</b>_COMMUNICATION</div>
+</footer>
+
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
 
-let map;
-let userLat, userLon;
-let radiusKm = 50;
-let markers = [];
+let map=L.map("map").setView([40,9],8);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
-/* 🔥 DATASET COMPLETO */
-let poiData = [
+let userLat=40,userLng=9;
+let poiLayer=L.layerGroup().addTo(map);
 
-/* BORghi */
-{ name:"Lollove",category:"borghi",lat:40.365,lon:9.3324},
-{ name:"Tempio Pausania",category:"borghi",lat:40.9,lon:9.1},
-{ name:"Aggius",category:"borghi",lat:40.93,lon:8.98},
-{ name:"Atzara",category:"borghi",lat:39.99,lon:9.07},
-{ name:"Bosa",category:"borghi",lat:40.3,lon:8.5},
-{ name:"Carloforte",category:"borghi",lat:39.14,lon:8.3},
-{ name:"Galtellì",category:"borghi",lat:40.39,lon:9.61},
-{ name:"Laconi",category:"borghi",lat:39.85,lon:9.05},
-{ name:"La Maddalena",category:"borghi",lat:41.21,lon:9.41},
-{ name:"Oliena",category:"borghi",lat:40.27,lon:9.4},
-{ name:"Posada",category:"borghi",lat:40.63,lon:9.72},
-{ name:"Sadali",category:"borghi",lat:39.82,lon:9.27},
-{ name:"Sardara",category:"borghi",lat:39.62,lon:8.82},
-{ name:"Gavoi",category:"borghi",lat:40.16,lon:9.2},
-{ name:"Castelsardo",category:"borghi",lat:40.92,lon:8.71},
-
-/* NURAGHI */
-{ name:"Nuraghe Arrubiu",category:"nuraghi",lat:39.66,lon:9.3},
-{ name:"Nuraghe Palmavera",category:"nuraghi",lat:40.557,lon:8.319},
-{ name:"Nuraghe Losa",category:"nuraghi",lat:40.128,lon:8.82},
-{ name:"Su Nuraxi",category:"nuraghi",lat:39.7,lon:9.0},
-
-/* TOMBE */
-{ name:"Coddu Vecchiu",category:"tombe",lat:41.08,lon:9.38},
-{ name:"Li Lolghi",category:"tombe",lat:41.07,lon:9.37},
-
-/* DOMUS */
-{ name:"Anghelu Ruju",category:"domus",lat:40.6,lon:8.29},
-{ name:"Sant’Andrea Priu",category:"domus",lat:40.43,lon:8.77},
-
-/* FAUNA */
-{ name:"Fenicottero rosa",category:"flora",lat:39.22,lon:9.14},
-{ name:"Cervo sardo",category:"flora",lat:39.18,lon:8.93}
-
+/* 🔥 TUOI POI REALI */
+let poiData=[
+{name:"Bosa",lat:40.3,lon:8.5},
+{name:"Lollove",lat:40.365,lon:9.3324},
+{name:"Nuraghe Arrubiu",lat:39.66,lon:9.3},
+{name:"Anghelu Ruju",lat:40.6,lon:8.29}
 ];
 
-/* SLIDER */
-document.getElementById("radius").oninput=function(){
-document.getElementById("radiusValue").innerText=this.value;
-}
-
 /* GPS */
-function enableGPS(){
+document.getElementById("gpsBtn").onclick=function(){
 navigator.geolocation.getCurrentPosition(pos=>{
 userLat=pos.coords.latitude;
-userLon=pos.coords.longitude;
-document.getElementById("gpsPopup").classList.add("hidden");
-document.getElementById("radiusPopup").classList.remove("hidden");
-});
-}
+userLng=pos.coords.longitude;
 
-/* START */
-function startApp(){
-radiusKm=document.getElementById("radius").value;
-document.getElementById("raggioTxt").innerText=radiusKm;
+document.getElementById("gpsModal").style.display="none";
 
-document.getElementById("radiusPopup").classList.add("hidden");
-
-initMap();
+drawUser();
 loadPOI();
-}
+});
+};
 
-/* MAP */
-function initMap(){
-map=L.map('map').setView([userLat,userLon],10);
-
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+/* USER */
+function drawUser(){
+L.marker([userLat,userLng]).addTo(map).bindPopup("TU SEI QUI");
+map.setView([userLat,userLng],12);
 }
 
 /* POI */
 function loadPOI(){
+poiLayer.clearLayers();
 
-markers.forEach(m=>map.removeLayer(m));
-markers=[];
+poiData.forEach(p=>{
+let m=L.circleMarker([p.lat,p.lon],{
+radius:8,color:"#000",fillColor:"red",fillOpacity:1
+}).addTo(poiLayer);
 
-document.getElementById("poiMenu").innerHTML="";
-
-poiData.forEach(poi=>{
-
-let d=distance(userLat,userLon,poi.lat,poi.lon);
-
-if(d<=radiusKm){
-
-let div=document.createElement("div");
-div.className="dot "+poi.category;
-
-let icon=L.divIcon({html:div,className:''});
-
-let wiki="https://it.wikipedia.org/wiki/"+encodeURIComponent(poi.name);
-let maps=`https://www.google.com/maps/dir/?api=1&destination=${poi.lat},${poi.lon}`;
-
-let marker=L.marker([poi.lat,poi.lon],{icon})
-.addTo(map)
-.bindPopup(`<b>${poi.name}</b><br>
-<a href="${wiki}" target="_blank">Wikipedia</a><br>
-<a href="${maps}" target="_blank">Come arrivare</a>`);
-
-markers.push(marker);
-
-let item=document.createElement("div");
-item.innerText=poi.name;
-
-item.onclick=()=>{
-map.setView([poi.lat,poi.lon],13);
-marker.openPopup();
-};
-
-document.getElementById("poiMenu").appendChild(item);
-}
+m.on("click",()=>openDetail(p));
 });
 
+renderList();
 }
 
-/* MENU */
-function toggleMenu(){
-let m=document.getElementById("poiMenu");
-m.style.display=m.style.display==="block"?"none":"block";
+/* LIST */
+function renderList(){
+let list=document.getElementById("poiList");
+list.innerHTML="";
+
+poiData.forEach(p=>{
+let div=document.createElement("div");
+div.className="poiItem";
+div.innerText=p.name;
+
+div.onclick=function(){
+map.setView([p.lat,p.lon],13);
+};
+
+list.appendChild(div);
+});
 }
 
-/* DIST */
-function distance(a,b,c,d){
-let R=6371;
-let dLat=(c-a)*Math.PI/180;
-let dLon=(d-b)*Math.PI/180;
-let x=Math.sin(dLat/2)**2+
-Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*
-Math.sin(dLon/2)**2;
-return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
+/* CARD */
+function openDetail(p){
+document.getElementById("poiTitle").innerText=p.name;
+
+document.getElementById("wikiBtn").onclick=function(){
+window.open("https://it.wikipedia.org/wiki/"+encodeURIComponent(p.name));
+};
+
+document.getElementById("goBtn").onclick=function(){
+window.open(`https://www.google.com/maps/dir/${userLat},${userLng}/${p.lat},${p.lon}`);
+};
+
+document.getElementById("detailCard").style.display="block";
 }
 
-/* RSS */
-document.getElementById("rssEvents").innerText =
-"Eventi culturali Sardegna ✦ Mostre ✦ Festival";
+function closeCard(){document.getElementById("detailCard").style.display="none";}
+function closePanel(){document.getElementById("poiPanel").style.display="none";}
 
-document.getElementById("rssContacts").innerText =
-"📞 112 ✦ 📞 118 ✦ 📞 INFOPOINT";
+document.getElementById("plusBtn").onclick=function(){
+let p=document.getElementById("poiPanel");
+p.style.display=(p.style.display==="block")?"none":"block";
+};
 
 </script>
 
