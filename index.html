@@ -11,7 +11,7 @@
 <style>
 body { margin:0; font-family:Arial; }
 
-/* SCHERMATE */
+/* SCREEN */
 .screen { display:none; }
 .active { display:flex; }
 
@@ -39,17 +39,12 @@ body { margin:0; font-family:Arial; }
   align-items:center;
 }
 
-#slider {
-  width:80%;
-}
-
-#valore {
-  font-size:20px;
-  margin:10px;
-}
+#slider { width:80%; }
 
 /* APP */
-#app { display:none; flex-direction:column; }
+#app {
+  flex-direction:column;
+}
 
 /* HEADER */
 #header img {
@@ -61,41 +56,13 @@ body { margin:0; font-family:Arial; }
 /* INFO */
 #info {
   text-align:center;
-  font-size:14px;
-  padding:5px;
   font-weight:bold;
-}
-
-/* FILTRI */
-#filtri {
-  display:flex;
-  flex-wrap:wrap;
-  justify-content:center;
-  gap:8px;
-  padding:8px;
+  padding:5px;
 }
 
 /* MAP */
 #map {
   height:50vh;
-}
-
-/* MENU */
-#menuBtn {
-  position:absolute;
-  top:110px;
-  right:20px;
-  width:80px;
-  height:80px;
-  background:red;
-  border-radius:50%;
-  color:white;
-  font-size:40px;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  cursor:pointer;
-  z-index:1000;
 }
 
 /* RSS */
@@ -120,12 +87,6 @@ body { margin:0; font-family:Arial; }
   0% { transform:translateX(0); }
   100% { transform:translateX(-100%); }
 }
-
-/* FOOTER */
-#footer {
-  text-align:center;
-  padding:10px;
-}
 </style>
 </head>
 
@@ -138,12 +99,9 @@ body { margin:0; font-family:Arial; }
 
 <!-- RAGGIO -->
 <div id="raggioScreen" class="screen">
-  <h2>Seleziona raggio di navigazione</h2>
-
+  <h2>Seleziona raggio</h2>
   <input type="range" id="slider" min="1" max="50" value="10">
-
   <div id="valore">10 km</div>
-
   <button onclick="entraApp()">Conferma</button>
 </div>
 
@@ -158,28 +116,12 @@ body { margin:0; font-family:Arial; }
 I punti di interesse mappati sono quelli presenti in un raggio di <span id="raggioTxt"></span> km
 </div>
 
-<div id="filtri">
-<label><input type="checkbox" id="all"> Tutti</label>
-<label><input type="checkbox" value="borgo"> Borghi</label>
-<label><input type="checkbox" value="nuraghe"> Nuraghi</label>
-<label><input type="checkbox" value="domus"> Domus</label>
-<label><input type="checkbox" value="tomba"> Tombe</label>
-<label><input type="checkbox" value="fauna"> Fauna</label>
-</div>
-
 <div id="rss">
-<div class="marquee"><div>EVENTI E COMUNICAZIONI ISTITUZIONALI</div></div>
-<div class="marquee"><div>📞 112 | INFOPOINT</div></div>
+<div class="marquee"><div>EVENTI ISTITUZIONALI</div></div>
+<div class="marquee"><div>📞 112 INFOPOINT</div></div>
 </div>
-
-<div id="menuBtn" onclick="toggleMenu()">+</div>
-<div id="menuPoi"></div>
 
 <div id="map"></div>
-
-<div id="footer">
-<b>PASSAMONTI</b>_COMMUNICATION
-</div>
 
 </div>
 
@@ -187,32 +129,33 @@ I punti di interesse mappati sono quelli presenti in un raggio di <span id="ragg
 
 <script>
 
+let userLat, userLon;
 let raggio = 10;
-let map, userLat, userLon;
-let markers=[];
-
-const POI = [
-{nome:"Bosa", lat:40.3, lon:8.5, cat:"borgo"},
-{nome:"Su Nuraxi", lat:39.7, lon:9.0, cat:"nuraghe"},
-{nome:"Anghelu Ruju", lat:40.6, lon:8.29, cat:"domus"}
-];
+let map;
 
 // SLIDER
-let slider=document.getElementById("slider");
-slider.oninput = function(){
-raggio=this.value;
+document.getElementById("slider").oninput = function(){
+raggio = this.value;
 document.getElementById("valore").innerText = raggio + " km";
 };
 
-// GPS
+// START GPS
 function startGPS(){
-navigator.geolocation.getCurrentPosition(pos=>{
-userLat=pos.coords.latitude;
-userLon=pos.coords.longitude;
 
+navigator.geolocation.getCurrentPosition(
+(pos)=>{
+userLat = pos.coords.latitude;
+userLon = pos.coords.longitude;
+
+// cambia schermata
 document.getElementById("start").classList.remove("active");
 document.getElementById("raggioScreen").classList.add("active");
-});
+},
+()=>{
+alert("GPS non autorizzato");
+}
+);
+
 }
 
 // ENTRA APP
@@ -223,52 +166,29 @@ document.getElementById("app").classList.add("active");
 
 document.getElementById("raggioTxt").innerText = raggio;
 
+// FIX LEAFLET
+setTimeout(()=>{
 initMap();
-aggiorna();
+},200);
+
 }
 
 // MAP
 function initMap(){
-map=L.map('map',{dragging:false}).setView([40.1,9],8);
+
+map = L.map('map',{dragging:false}).setView([userLat,userLon],10);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
+// TU SEI QUI
 L.circleMarker([userLat,userLon],{
-radius:12,fillColor:"red",color:"white",weight:3
-}).addTo(map);
-}
+radius:12,
+fillColor:"red",
+color:"white",
+weight:3,
+fillOpacity:1
+}).addTo(map).bindPopup("Tu sei qui").openPopup();
 
-// DISTANZA
-function distanza(a,b,c,d){
-let R=6371;
-let dLat=(c-a)*Math.PI/180;
-let dLon=(d-b)*Math.PI/180;
-let x=Math.sin(dLat/2)**2+
-Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dLon/2)**2;
-return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
-}
-
-// AGGIORNA
-function aggiorna(){
-markers.forEach(m=>map.removeLayer(m));
-markers=[];
-
-let attivi=[...document.querySelectorAll("#filtri input:checked")]
-.map(x=>x.value).filter(v=>v);
-
-POI.forEach(p=>{
-if(attivi.includes(p.cat) && distanza(userLat,userLon,p.lat,p.lon)<=raggio){
-
-let m=L.circleMarker([p.lat,p.lon]).addTo(map);
-markers.push(m);
-}
-});
-}
-
-// MENU
-function toggleMenu(){
-let m=document.getElementById("menuPoi");
-m.style.display = m.style.display==="none"?"block":"none";
 }
 
 </script>
