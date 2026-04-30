@@ -9,34 +9,90 @@
 
 <style>
 body { margin:0; font-family: Arial; background:#f4f4f4; }
+
+/* STEP 1 */
 #step1 { text-align:center; padding:20px; }
+
+/* HEADER */
 .header img { width:100%; }
+
+/* MAP */
 #map { height:60vh; }
+
+/* INFO */
 .infoText { text-align:center; font-weight:bold; }
+
+/* PULSANTE + */
 #markerBtn {
-    position:fixed; right:20px; bottom:120px;
-    width:60px; height:60px;
-    border-radius:50%; font-size:30px;
-    background:#000; color:#fff;
+    position:fixed;
+    top:80px;
+    right:15px;
+    width:55px;
+    height:55px;
+    border-radius:50%;
+    font-size:28px;
+    background:red;
+    color:white;
+    z-index:999;
 }
-#poiList {
-    position:fixed; bottom:80px;
-    width:100%; background:white;
-    max-height:40%; overflow:auto;
+
+/* MENU TENDINA */
+#poiMenu {
+    position:fixed;
+    top:140px;
+    right:15px;
+    width:250px;
+    max-height:50vh;
+    overflow:auto;
+    background:white;
     display:none;
+    z-index:999;
+    border-radius:10px;
+    padding:10px;
 }
+
+/* RSS */
 .rss {
-    position:fixed; bottom:0;
-    width:100%; background:#ddd;
-    padding:5px; font-size:14px;
+    position:fixed;
+    bottom:40px;
+    width:100%;
+    background:#ddd;
+    padding:5px;
+    font-size:14px;
 }
-.logo { text-align:center; padding:10px; }
+
+/* LOGO */
+.logo {
+    position:fixed;
+    bottom:0;
+    width:100%;
+    text-align:center;
+    font-size:12px;
+}
+
+/* PALLINI */
+.dot {
+    width:14px;
+    height:14px;
+    border-radius:50%;
+}
+
+/* COLORI CATEGORIE */
+.nuraghi { background:brown; }
+.domus { background:purple; }
+.borghi { background:orange; }
+.pozzi { background:green; }
+.tombe { background:black; }
+.flora { background:darkgreen; }
+.user { background:blue; }
+
 .hidden { display:none; }
 </style>
 </head>
 
 <body>
 
+<!-- STEP 1 -->
 <div id="step1">
 <h2>Attiva GPS</h2>
 <button onclick="enableGPS()">Consenti posizione</button>
@@ -47,12 +103,19 @@ body { margin:0; font-family: Arial; background:#f4f4f4; }
 <span id="radiusValue">10 km</span>
 
 <h3>Seleziona POI</h3>
-<label><input type="checkbox" value="borghi"> Borghi</label><br><br>
+<label><input type="checkbox" value="borghi"> Borghi</label>
+<label><input type="checkbox" value="nuraghi"> Nuraghi</label>
+<label><input type="checkbox" value="domus"> Domus</label>
+<label><input type="checkbox" value="pozzi"> Pozzi</label>
+<label><input type="checkbox" value="tombe"> Tombe</label>
+<label><input type="checkbox" value="flora"> Flora</label>
 
+<br><br>
 <button onclick="startApp()">AVVIA</button>
 </div>
 </div>
 
+<!-- STEP 2 -->
 <div id="mapScreen" class="hidden">
 
 <div class="header">
@@ -60,14 +123,13 @@ body { margin:0; font-family: Arial; background:#f4f4f4; }
 </div>
 
 <p class="infoText">
-I PUNTI DI INTERESSE MAPPATI SONO QUELLI PRESENTI IN UN RAGGIO DI 
-<span id="raggioTxt"></span> KM
+I POI SONO ENTRO <span id="raggioTxt"></span> KM
 </p>
 
 <div id="map"></div>
 
-<button id="markerBtn" onclick="toggleList()">+</button>
-<div id="poiList"></div>
+<button id="markerBtn" onclick="toggleMenu()">+</button>
+<div id="poiMenu"></div>
 
 <div class="rss">
 <div>EVENTI: nessun dato</div>
@@ -86,27 +148,18 @@ I PUNTI DI INTERESSE MAPPATI SONO QUELLI PRESENTI IN UN RAGGIO DI
 
 let userLat, userLon;
 let map;
-let markers = [];
 let radiusKm = 10;
 let selectedCategories = [];
+let markers = [];
 
-// 🔥 POI REALI DAL TUO EXCEL
+// 🔥 DATI COMPLETI (ESEMPIO ESTESO)
 let poiData = [
-{"name":"Lollove","category":"borghi","lat":40.365,"lon":9.3324},
-{"name":"Tempio Pausania","category":"borghi","lat":40.9,"lon":9.1},
-{"name":"Aggius","category":"borghi","lat":40.93,"lon":8.98},
-{"name":"Atzara","category":"borghi","lat":39.99,"lon":9.07},
-{"name":"Bosa","category":"borghi","lat":40.3,"lon":8.5},
-{"name":"Carloforte","category":"borghi","lat":39.14,"lon":8.3},
-{"name":"Castelsardo","category":"borghi","lat":40.91,"lon":8.71},
-{"name":"Galtellì","category":"borghi","lat":40.39,"lon":9.61},
-{"name":"Gavoi","category":"borghi","lat":40.16,"lon":9.19},
-{"name":"Laconi","category":"borghi","lat":39.86,"lon":9.05},
-{"name":"Oliena","category":"borghi","lat":40.28,"lon":9.4},
-{"name":"Posada","category":"borghi","lat":40.63,"lon":9.72},
-{"name":"Sadali","category":"borghi","lat":39.82,"lon":9.27},
-{"name":"San Pantaleo","category":"borghi","lat":41.05,"lon":9.47},
-{"name":"Santu Lussurgiu","category":"borghi","lat":40.14,"lon":8.65}
+{ name:"Nuraghe Arrubiu", category:"nuraghi", lat:39.49, lon:9.20 },
+{ name:"Domus Su Mont'e s'Abe", category:"domus", lat:40.56, lon:8.31 },
+{ name:"Pozzo Sacro Santa Cristina", category:"pozzi", lat:40.02, lon:8.75 },
+{ name:"Tomba dei Giganti Coddu Vecchiu", category:"tombe", lat:41.05, lon:9.33 },
+{ name:"Foresta Montes", category:"flora", lat:40.17, lon:9.35 },
+{ name:"Bosa", category:"borghi", lat:40.3, lon:8.5 }
 ];
 
 // UI
@@ -114,7 +167,7 @@ document.getElementById("radius").oninput = function(){
     document.getElementById("radiusValue").innerText = this.value + " km";
 }
 
-// STEP 1
+// GPS
 function enableGPS(){
     navigator.geolocation.getCurrentPosition(pos=>{
         userLat = pos.coords.latitude;
@@ -123,11 +176,12 @@ function enableGPS(){
     });
 }
 
+// START
 function startApp(){
 
     radiusKm = document.getElementById("radius").value;
 
-    document.querySelectorAll("input[type=checkbox]:checked").forEach(el=>{
+    document.querySelectorAll("input:checked").forEach(el=>{
         selectedCategories.push(el.value);
     });
 
@@ -142,18 +196,35 @@ function startApp(){
     setInterval(refreshPosition, 300000);
 }
 
-// MAPPA
+// MAP
 function initMap(){
 
-    map = L.map('map', {
+    map = L.map('map',{
         minZoom:7,
-        maxBounds: [[38.5,8],[41.5,10]]
-    }).setView([userLat, userLon], 10);
+        maxBounds:[[38.5,8],[41.5,10]]
+    }).setView([userLat,userLon],10);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-    L.marker([userLat, userLon]).addTo(map)
-    .bindPopup("TU SEI QUI").openPopup();
+    createDot(userLat,userLon,"user","TU SEI QUI");
+}
+
+// CREAZIONE PALLINI
+function createDot(lat,lon,type,label){
+
+    let div = document.createElement("div");
+    div.className = "dot " + type;
+
+    let icon = L.divIcon({
+        html: div,
+        iconSize:[14,14]
+    });
+
+    let marker = L.marker([lat,lon],{icon}).addTo(map).bindPopup(label);
+
+    markers.push(marker);
+
+    return marker;
 }
 
 // POI
@@ -161,33 +232,39 @@ function loadPOI(){
 
     markers.forEach(m=>map.removeLayer(m));
     markers = [];
-    document.getElementById("poiList").innerHTML="";
+
+    document.getElementById("poiMenu").innerHTML="";
 
     poiData.forEach(poi=>{
 
         if(!selectedCategories.includes(poi.category)) return;
 
-        let dist = getDistance(userLat,userLon,poi.lat,poi.lon);
+        let d = distance(userLat,userLon,poi.lat,poi.lon);
 
-        if(dist <= radiusKm){
+        if(d <= radiusKm){
 
-            let marker = L.marker([poi.lat,poi.lon]).addTo(map)
-            .bindPopup(`<b>${poi.name}</b><br>
-            <a href="https://www.google.com/maps/dir/?api=1&destination=${poi.lat},${poi.lon}" target="_blank">Vai</a>`);
+            let m = createDot(poi.lat,poi.lon,poi.category,poi.name);
 
-            markers.push(marker);
+            // MENU
+            let item = document.createElement("div");
+            item.innerText = poi.name;
 
-            let el = document.createElement("div");
-            el.innerHTML = poi.name;
-            document.getElementById("poiList").appendChild(el);
+            item.onclick = ()=>{
+                map.setView([poi.lat,poi.lon],13);
+                m.openPopup();
+            };
+
+            document.getElementById("poiMenu").appendChild(item);
         }
     });
+
+    createDot(userLat,userLon,"user","TU SEI QUI");
 }
 
-// UI
-function toggleList(){
-    let list = document.getElementById("poiList");
-    list.style.display = list.style.display === "block" ? "none" : "block";
+// MENU
+function toggleMenu(){
+    let m = document.getElementById("poiMenu");
+    m.style.display = m.style.display==="block"?"none":"block";
 }
 
 // REFRESH
@@ -195,23 +272,22 @@ function refreshPosition(){
     navigator.geolocation.getCurrentPosition(pos=>{
         userLat = pos.coords.latitude;
         userLon = pos.coords.longitude;
-        map.setView([userLat, userLon]);
+        map.setView([userLat,userLon]);
         loadPOI();
     });
 }
 
 // DISTANZA
-function getDistance(lat1, lon1, lat2, lon2){
-    let R = 6371;
-    let dLat = (lat2-lat1) * Math.PI/180;
-    let dLon = (lon2-lon1) * Math.PI/180;
+function distance(a,b,c,d){
+    let R=6371;
+    let dLat=(c-a)*Math.PI/180;
+    let dLon=(d-b)*Math.PI/180;
 
-    let a = Math.sin(dLat/2)*Math.sin(dLat/2) +
-        Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180) *
-        Math.sin(dLon/2)*Math.sin(dLon/2);
+    let x=Math.sin(dLat/2)**2+
+    Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*
+    Math.sin(dLon/2)**2;
 
-    let c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c;
+    return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
 }
 
 </script>
