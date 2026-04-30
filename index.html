@@ -5,76 +5,216 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>WayFinder Sardegna</title>
 
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 
-<!-- Leaflet -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-
+<style>
+body { margin:0; font-family: Arial; background:#f4f4f4; }
+#step1 { text-align:center; padding:20px; }
+.header img { width:100%; }
+#map { height:60vh; }
+.infoText { text-align:center; font-weight:bold; }
+#markerBtn {
+    position:fixed; right:20px; bottom:120px;
+    width:60px; height:60px;
+    border-radius:50%; font-size:30px;
+    background:#000; color:#fff;
+}
+#poiList {
+    position:fixed; bottom:80px;
+    width:100%; background:white;
+    max-height:40%; overflow:auto;
+    display:none;
+}
+.rss {
+    position:fixed; bottom:0;
+    width:100%; background:#ddd;
+    padding:5px; font-size:14px;
+}
+.logo { text-align:center; padding:10px; }
+.hidden { display:none; }
+</style>
 </head>
 
 <body>
 
-<!-- STEP 1 -->
-<div id="step1" class="screen">
+<div id="step1">
+<h2>Attiva GPS</h2>
+<button onclick="enableGPS()">Consenti posizione</button>
 
-    <h2>Attiva GPS</h2>
-    <button onclick="enableGPS()">Consenti posizione</button>
+<div id="stepOptions" style="display:none;">
+<p>Seleziona raggio (km)</p>
+<input type="range" min="1" max="100" value="10" id="radius">
+<span id="radiusValue">10 km</span>
 
-    <div id="radiusBox" style="display:none;">
-        <p>Seleziona raggio (km)</p>
-        <input type="range" min="1" max="100" value="10" id="radius">
-        <span id="radiusValue">10 km</span>
+<h3>Seleziona POI</h3>
+<label><input type="checkbox" value="borghi"> Borghi</label><br><br>
 
-        <h3>Seleziona POI</h3>
-
-        <div class="checkboxes">
-            <label><input type="checkbox" value="nuraghi"> Nuraghi</label>
-            <label><input type="checkbox" value="domus"> Domus de Janas</label>
-            <label><input type="checkbox" value="borghi"> Borghi</label>
-            <label><input type="checkbox" value="pozzi"> Pozzi Sacri</label>
-            <label><input type="checkbox" value="tombe"> Tombe dei Giganti</label>
-            <label><input type="checkbox" value="flora"> Flora</label>
-        </div>
-
-        <button onclick="startApp()">Avvia</button>
-    </div>
+<button onclick="startApp()">AVVIA</button>
+</div>
 </div>
 
-<!-- STEP 2 -->
 <div id="mapScreen" class="hidden">
 
-    <!-- HEADER -->
-    <div class="header">
-        <img src="header.png" alt="WayFinder Sardegna">
-    </div>
+<div class="header">
+<img src="header-wayfinder.png">
+</div>
 
-    <p class="infoText">
-        I PUNTI DI INTERESSE MAPPATI SONO QUELLI PRESENTI IN UN RAGGIO DI 
-        <span id="raggioTxt"></span> KM
-    </p>
+<p class="infoText">
+I PUNTI DI INTERESSE MAPPATI SONO QUELLI PRESENTI IN UN RAGGIO DI 
+<span id="raggioTxt"></span> KM
+</p>
 
-    <div id="map"></div>
+<div id="map"></div>
 
-    <!-- Marker + -->
-    <button id="markerBtn" onclick="toggleList()">+</button>
+<button id="markerBtn" onclick="toggleList()">+</button>
+<div id="poiList"></div>
 
-    <div id="poiList" class="hidden"></div>
+<div class="rss">
+<div>EVENTI: nessun dato</div>
+<div>📞 112 | 📞 1500</div>
+</div>
 
-    <!-- RSS -->
-    <div class="rss">
-        <div id="rssEvents"></div>
-        <div id="rssContacts"></div>
-    </div>
-
-    <!-- LOGO -->
-    <div class="logo">
-        <b>PASSAMONTI</b>_COMMUNICATION
-    </div>
+<div class="logo">
+<b>PASSAMONTI</b>_COMMUNICATION
+</div>
 
 </div>
 
-<script src="app.js"></script>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+
+let userLat, userLon;
+let map;
+let markers = [];
+let radiusKm = 10;
+let selectedCategories = [];
+
+// 🔥 POI REALI DAL TUO EXCEL
+let poiData = [
+{"name":"Lollove","category":"borghi","lat":40.365,"lon":9.3324},
+{"name":"Tempio Pausania","category":"borghi","lat":40.9,"lon":9.1},
+{"name":"Aggius","category":"borghi","lat":40.93,"lon":8.98},
+{"name":"Atzara","category":"borghi","lat":39.99,"lon":9.07},
+{"name":"Bosa","category":"borghi","lat":40.3,"lon":8.5},
+{"name":"Carloforte","category":"borghi","lat":39.14,"lon":8.3},
+{"name":"Castelsardo","category":"borghi","lat":40.91,"lon":8.71},
+{"name":"Galtellì","category":"borghi","lat":40.39,"lon":9.61},
+{"name":"Gavoi","category":"borghi","lat":40.16,"lon":9.19},
+{"name":"Laconi","category":"borghi","lat":39.86,"lon":9.05},
+{"name":"Oliena","category":"borghi","lat":40.28,"lon":9.4},
+{"name":"Posada","category":"borghi","lat":40.63,"lon":9.72},
+{"name":"Sadali","category":"borghi","lat":39.82,"lon":9.27},
+{"name":"San Pantaleo","category":"borghi","lat":41.05,"lon":9.47},
+{"name":"Santu Lussurgiu","category":"borghi","lat":40.14,"lon":8.65}
+];
+
+// UI
+document.getElementById("radius").oninput = function(){
+    document.getElementById("radiusValue").innerText = this.value + " km";
+}
+
+// STEP 1
+function enableGPS(){
+    navigator.geolocation.getCurrentPosition(pos=>{
+        userLat = pos.coords.latitude;
+        userLon = pos.coords.longitude;
+        document.getElementById("stepOptions").style.display="block";
+    });
+}
+
+function startApp(){
+
+    radiusKm = document.getElementById("radius").value;
+
+    document.querySelectorAll("input[type=checkbox]:checked").forEach(el=>{
+        selectedCategories.push(el.value);
+    });
+
+    document.getElementById("step1").classList.add("hidden");
+    document.getElementById("mapScreen").classList.remove("hidden");
+
+    document.getElementById("raggioTxt").innerText = radiusKm;
+
+    initMap();
+    loadPOI();
+
+    setInterval(refreshPosition, 300000);
+}
+
+// MAPPA
+function initMap(){
+
+    map = L.map('map', {
+        minZoom:7,
+        maxBounds: [[38.5,8],[41.5,10]]
+    }).setView([userLat, userLon], 10);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+    L.marker([userLat, userLon]).addTo(map)
+    .bindPopup("TU SEI QUI").openPopup();
+}
+
+// POI
+function loadPOI(){
+
+    markers.forEach(m=>map.removeLayer(m));
+    markers = [];
+    document.getElementById("poiList").innerHTML="";
+
+    poiData.forEach(poi=>{
+
+        if(!selectedCategories.includes(poi.category)) return;
+
+        let dist = getDistance(userLat,userLon,poi.lat,poi.lon);
+
+        if(dist <= radiusKm){
+
+            let marker = L.marker([poi.lat,poi.lon]).addTo(map)
+            .bindPopup(`<b>${poi.name}</b><br>
+            <a href="https://www.google.com/maps/dir/?api=1&destination=${poi.lat},${poi.lon}" target="_blank">Vai</a>`);
+
+            markers.push(marker);
+
+            let el = document.createElement("div");
+            el.innerHTML = poi.name;
+            document.getElementById("poiList").appendChild(el);
+        }
+    });
+}
+
+// UI
+function toggleList(){
+    let list = document.getElementById("poiList");
+    list.style.display = list.style.display === "block" ? "none" : "block";
+}
+
+// REFRESH
+function refreshPosition(){
+    navigator.geolocation.getCurrentPosition(pos=>{
+        userLat = pos.coords.latitude;
+        userLon = pos.coords.longitude;
+        map.setView([userLat, userLon]);
+        loadPOI();
+    });
+}
+
+// DISTANZA
+function getDistance(lat1, lon1, lat2, lon2){
+    let R = 6371;
+    let dLat = (lat2-lat1) * Math.PI/180;
+    let dLon = (lon2-lon1) * Math.PI/180;
+
+    let a = Math.sin(dLat/2)*Math.sin(dLat/2) +
+        Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180) *
+        Math.sin(dLon/2)*Math.sin(dLon/2);
+
+    let c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+}
+
+</script>
 
 </body>
 </html>
