@@ -14,7 +14,7 @@ body { margin:0; font-family: Arial; }
 /* MAP */
 #map { height:75vh; }
 
-/* 🔴 BUTTON */
+/* BUTTON */
 #markerBtn {
     position:fixed;
     top:160px;
@@ -50,7 +50,7 @@ body { margin:0; font-family: Arial; }
     padding:10px;
 }
 
-/* 🔥 RSS DIRETTI SENZA FASCIA */
+/* RSS */
 .rss {
     position:fixed;
     bottom:0;
@@ -60,7 +60,6 @@ body { margin:0; font-family: Arial; }
     overflow:hidden;
 }
 
-/* SCROLL */
 .rss-track {
     white-space:nowrap;
     animation:scroll 45s linear infinite;
@@ -81,10 +80,10 @@ body { margin:0; font-family: Arial; }
     font-size:10px;
 }
 
-/* 🔵 POI ENORMI */
+/* POI GRANDI */
 .dot {
-    width:32px;
-    height:32px;
+    width:34px;
+    height:34px;
     border-radius:50%;
 }
 
@@ -96,8 +95,6 @@ body { margin:0; font-family: Arial; }
 .tombe { background:black; }
 .flora { background:darkgreen; }
 .user { background:blue; }
-
-.hidden { display:none; }
 
 </style>
 </head>
@@ -128,12 +125,66 @@ let events = [];
 let markers = [];
 let radiusKm = 200;
 
-/* LOAD JSON (DERIVATI DA CSV) */
-async function loadData(){
+/* ===========================
+   🔥 INCOLLA QUI IL CSV POI
+   =========================== */
 
-    // 👉 QUI incollerò i tuoi dati reali (prossimo step automatico)
-    poiData = [];
-    events = [];
+let csvPOI = `
+NOME,CATEGORIA,LAT,LON
+Nuraghe Arrubiu,nuraghi,39.49,9.20
+Bosa,borghi,40.3,8.5
+`;
+
+/* ===========================
+   🔥 INCOLLA QUI EVENTI
+   =========================== */
+
+let csvEVENTI = `
+TITOLO,LUOGO,DATA
+Mostra archeologica,Cagliari,12 Luglio
+Festival cultura,Nuoro,20 Luglio
+`;
+
+/* ===========================
+   PARSER CSV
+   =========================== */
+
+function parseCSV(csv){
+
+    let rows = csv.trim().split("\n");
+    let headers = rows[0].split(",");
+
+    return rows.slice(1).map(row=>{
+        let values = row.split(",");
+        let obj = {};
+
+        headers.forEach((h,i)=>{
+            obj[h.trim().toLowerCase()] = values[i].trim();
+        });
+
+        return obj;
+    });
+}
+
+/* LOAD DATA */
+function loadData(){
+
+    let poiRaw = parseCSV(csvPOI);
+
+    poiData = poiRaw.map(p=>({
+        name:p.nome,
+        category:p.categoria,
+        lat:parseFloat(p.lat),
+        lon:parseFloat(p.lon)
+    }));
+
+    let evRaw = parseCSV(csvEVENTI);
+
+    events = evRaw.map(e=>({
+        titolo:e.titolo,
+        luogo:e.luogo,
+        data:e.data
+    }));
 
     startApp();
 }
@@ -171,7 +222,7 @@ div.className="dot "+type;
 
 let icon=L.divIcon({
 html:div,
-iconSize:[32,32],
+iconSize:[34,34],
 className:''
 });
 
