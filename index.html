@@ -56,47 +56,59 @@ body { margin:0; font-family:Arial; }
 
 /* MAPPA */
 #map {
-  height:60vh;
+  height:55vh;
 }
 
-/* PULSANTE + */
+/* 🔴 MARKER + (CORRETTO) */
 #menuBtn {
   position:absolute;
-  top:140px;
+  top:150px;
   right:20px;
-  width:70px;
-  height:70px;
+  width:80px;
+  height:80px;
   border-radius:50%;
   background:red;
   color:white;
+  font-size:32px;
   display:flex;
   justify-content:center;
   align-items:center;
-  font-size:26px;
-  animation:pulse 1.5s infinite;
+  z-index:1000;
+  cursor:pointer;
+  animation:pulse 1.2s infinite;
 }
 
 @keyframes pulse {
   0% {transform:scale(1);}
-  50% {transform:scale(1.2);}
+  50% {transform:scale(1.25);}
   100% {transform:scale(1);}
 }
 
 /* MENU */
 #menuPoi {
   position:absolute;
-  top:220px;
+  top:250px;
   right:20px;
   width:260px;
-  background:white;
   max-height:350px;
   overflow:auto;
+  background:white;
   display:none;
+  z-index:1000;
+  border-radius:10px;
 }
 
 .poi-item {
   padding:10px;
   border-bottom:1px solid #eee;
+  cursor:pointer;
+}
+
+/* RSS */
+#rss {
+  font-size:12px;
+  padding:5px;
+  background:#f5f5f5;
 }
 
 /* FOOTER */
@@ -120,14 +132,13 @@ body { margin:0; font-family:Arial; }
 <div id="screen2">
 
 <div id="header">
-  <img src="header-wayfinder.png" alt="WayFinder Sardegna">
+  <img src="header-wayfinder.png">
 </div>
 
 <div id="info">
 I punti di interesse mappati sono quelli presenti in un raggio di 1 km
 </div>
 
-<!-- FILTRI -->
 <div id="filtri">
 <label><input type="checkbox" value="borgo"> Borghi</label>
 <label><input type="checkbox" value="nuraghe"> Nuraghi</label>
@@ -141,10 +152,15 @@ I punti di interesse mappati sono quelli presenti in un raggio di 1 km
 
 <div id="map"></div>
 
+<!-- RSS -->
+<div id="rss">
+<div>📰 Eventi e comunicazioni istituzionali in aggiornamento...</div>
+<div>📞 <a href="tel:112">112</a> | InfoPoint locale</div>
+</div>
+
+<!-- FOOTER -->
 <div id="footer">
-<div>Eventi e comunicazioni istituzionali</div>
-<div>📞 <a href="tel:112">112</a> | InfoPoint</div>
-<div><b>PASSAMONTI</b>_COMMUNICATION</div>
+<b>PASSAMONTI</b>_COMMUNICATION
 </div>
 
 </div>
@@ -153,31 +169,18 @@ I punti di interesse mappati sono quelli presenti in un raggio di 1 km
 
 <script>
 
-// ===== DATASET COMPLETO =====
 const POI = [
-
 {nome:"Bosa", lat:40.3, lon:8.5, cat:"borgo"},
-{nome:"Castelsardo", lat:40.92, lon:8.71, cat:"borgo"},
-{nome:"Lollove", lat:40.365, lon:9.3324, cat:"borgo"},
-
 {nome:"Su Nuraxi", lat:39.7, lon:9.0, cat:"nuraghe"},
-{nome:"Nuraghe Arrubiu", lat:39.66, lon:9.3, cat:"nuraghe"},
-
 {nome:"Anghelu Ruju", lat:40.6, lon:8.29, cat:"domus"},
-{nome:"Montessu", lat:39.11, lon:8.67, cat:"domus"},
-
 {nome:"Coddu Vecchiu", lat:41.08, lon:9.38, cat:"tomba"},
-
 {nome:"Fenicottero rosa", lat:39.22, lon:9.14, cat:"fauna"}
-
 ];
 
-// ===== VAR =====
 let map, userLat, userLon;
 let markers = [];
-let selected = null;
 
-// ===== DISTANZA =====
+// DISTANZA
 function distanza(a,b,c,d){
 let R=6371;
 let dLat=(c-a)*Math.PI/180;
@@ -187,7 +190,7 @@ Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dLon/2)**2;
 return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
 }
 
-// ===== GPS =====
+// GPS
 document.getElementById("gpsBtn").onclick=()=>{
 navigator.geolocation.getCurrentPosition(pos=>{
 
@@ -209,12 +212,11 @@ radius:14,color:"white",fillColor:"red",fillOpacity:1,weight:3
 });
 };
 
-// ===== FILTRI =====
+// FILTRI
 document.querySelectorAll("#filtri input").forEach(cb=>{
 cb.onchange=()=>aggiorna();
 });
 
-// ===== AGGIORNA =====
 function aggiorna(){
 
 markers.forEach(m=>map.removeLayer(m));
@@ -230,14 +232,14 @@ POI.forEach(p=>{
 if(attivi.includes(p.cat) && distanza(userLat,userLon,p.lat,p.lon)<=1){
 
 let m=L.circleMarker([p.lat,p.lon],{
-radius:6, fillColor:"blue", color:"blue", fillOpacity:1
+radius:6,fillColor:"blue",color:"blue",fillOpacity:1
 }).addTo(map);
 
 markers.push(m);
 
-let wiki=encodeURIComponent(p.nome.replace(/ /g,"_"));
-
+// popup
 m.on("click",()=>{
+let wiki=encodeURIComponent(p.nome.replace(/ /g,"_"));
 m.bindPopup(`
 <b>${p.nome}</b><br><br>
 <a href="https://it.wikipedia.org/wiki/${wiki}" target="_blank">Wikipedia</a><br><br>
@@ -245,22 +247,26 @@ m.bindPopup(`
 `).openPopup();
 });
 
+// menu
 let div=document.createElement("div");
 div.className="poi-item";
 div.innerText=p.nome;
+div.onclick=()=>{
+map.setView([p.lat,p.lon],15);
+};
 menu.appendChild(div);
 
 }
 });
 }
 
-// MENU
+// MENU BUTTON
 document.getElementById("menuBtn").onclick=()=>{
 let m=document.getElementById("menuPoi");
-m.style.display=m.style.display==="none"?"block":"none";
+m.style.display = m.style.display==="none"?"block":"none";
 };
 
-// REFRESH
+// REFRESH 5 MIN
 setInterval(()=>{
 navigator.geolocation.getCurrentPosition(pos=>{
 userLat=pos.coords.latitude;
