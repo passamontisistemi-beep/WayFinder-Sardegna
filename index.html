@@ -3,272 +3,78 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>WayFinder Sardegna</title>
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<link rel="stylesheet" href="style.css">
 
-<style>
-body {
-  margin:0;
-  font-family:Arial;
-  background:#eee;
-  display:flex;
-  justify-content:center;
-}
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
-/* CONTENITORE 35:68 */
-#container {
-  width:350px;
-  height:680px;
-  background:white;
-  overflow:hidden;
-  position:relative;
-}
-
-/* SCHERMATE */
-.screen { display:none; height:100%; justify-content:center; align-items:center; flex-direction:column; }
-.active { display:flex; }
-
-/* BOTTONI */
-button {
-  padding:12px 20px;
-  margin:10px;
-  font-size:16px;
-  border:none;
-  border-radius:10px;
-  background:black;
-  color:white;
-}
-
-/* HEADER */
-#header img {
-  width:100%;
-  height:60px;
-  object-fit:cover;
-}
-
-/* INFO */
-#info {
-  text-align:center;
-  font-weight:bold;
-  font-size:13px;
-  padding:5px;
-}
-
-/* MAP */
-#map {
-  height:300px;
-}
-
-/* MENU + */
-#menuBtn {
-  position:absolute;
-  top:70px;
-  right:10px;
-  width:60px;
-  height:60px;
-  border-radius:50%;
-  background:red;
-  color:white;
-  font-size:28px;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  z-index:1000;
-}
-
-/* MENU */
-#menuPoi {
-  position:absolute;
-  top:140px;
-  right:10px;
-  width:200px;
-  max-height:200px;
-  overflow:auto;
-  background:white;
-  display:none;
-  border-radius:10px;
-  padding:5px;
-  font-size:13px;
-}
-
-/* RSS */
-#rss {
-  font-size:11px;
-  background:black;
-  color:white;
-  font-weight:bold;
-}
-
-/* FOOTER */
-#footer {
-  text-align:center;
-  font-size:12px;
-}
-</style>
 </head>
 
 <body>
 
-<div id="container">
+<!-- STEP 1 -->
+<div id="step1" class="screen">
 
-<!-- START -->
-<div id="start" class="screen active">
-  <h3>WayFinder Sardegna</h3>
-  <button onclick="vaiGPS()">Avvia</button>
+    <h2>Attiva GPS</h2>
+    <button onclick="enableGPS()">Consenti posizione</button>
+
+    <div id="radiusBox" style="display:none;">
+        <p>Seleziona raggio (km)</p>
+        <input type="range" min="1" max="100" value="10" id="radius">
+        <span id="radiusValue">10 km</span>
+
+        <h3>Seleziona POI</h3>
+
+        <div class="checkboxes">
+            <label><input type="checkbox" value="nuraghi"> Nuraghi</label>
+            <label><input type="checkbox" value="domus"> Domus de Janas</label>
+            <label><input type="checkbox" value="borghi"> Borghi</label>
+            <label><input type="checkbox" value="pozzi"> Pozzi Sacri</label>
+            <label><input type="checkbox" value="tombe"> Tombe dei Giganti</label>
+            <label><input type="checkbox" value="flora"> Flora</label>
+        </div>
+
+        <button onclick="startApp()">Avvia</button>
+    </div>
 </div>
 
-<!-- GPS -->
-<div id="gps" class="screen">
-  <p>Consenti GPS</p>
-  <button onclick="attivaGPS()">OK</button>
-</div>
+<!-- STEP 2 -->
+<div id="mapScreen" class="hidden">
 
-<!-- RAGGIO -->
-<div id="raggio" class="screen">
-  <h3>Seleziona raggio</h3>
-  <input type="range" min="1" max="50" value="10" id="slider">
-  <div id="valore">10 km</div>
-  <button onclick="vaiMappa()">Conferma</button>
-</div>
+    <!-- HEADER -->
+    <div class="header">
+        <img src="header.png" alt="WayFinder Sardegna">
+    </div>
 
-<!-- MAPPA -->
-<div id="app" class="screen">
+    <p class="infoText">
+        I PUNTI DI INTERESSE MAPPATI SONO QUELLI PRESENTI IN UN RAGGIO DI 
+        <span id="raggioTxt"></span> KM
+    </p>
 
-<div id="header">
-  <img src="header-wayfinder.png">
-</div>
+    <div id="map"></div>
 
-<div id="info">
-I punti di interesse mappati sono quelli presenti nel raggio selezionato
-</div>
+    <!-- Marker + -->
+    <button id="markerBtn" onclick="toggleList()">+</button>
 
-<div id="menuBtn" onclick="toggleMenu()">+</div>
-<div id="menuPoi"></div>
+    <div id="poiList" class="hidden"></div>
 
-<div id="map"></div>
+    <!-- RSS -->
+    <div class="rss">
+        <div id="rssEvents"></div>
+        <div id="rssContacts"></div>
+    </div>
 
-<div id="rss">
-EVENTI | 📞 112 INFOPOINT
-</div>
-
-<div id="footer">
-<b>PASSAMONTI</b>_COMMUNICATION
-</div>
+    <!-- LOGO -->
+    <div class="logo">
+        <b>PASSAMONTI</b>_COMMUNICATION
+    </div>
 
 </div>
 
-</div>
-
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-
-<script>
-
-let userLat, userLon;
-let map;
-let raggio = 10;
-
-// POI (demo)
-const POI = [
-{nome:"Bosa", lat:40.3, lon:8.5},
-{nome:"Su Nuraxi", lat:39.7, lon:9.0},
-{nome:"Anghelu Ruju", lat:40.6, lon:8.29}
-];
-
-// NAV
-function switchScreen(a,b){
-document.getElementById(a).classList.remove("active");
-document.getElementById(b).classList.add("active");
-}
-
-function vaiGPS(){ switchScreen("start","gps"); }
-
-function attivaGPS(){
-navigator.geolocation.getCurrentPosition(pos=>{
-userLat=pos.coords.latitude;
-userLon=pos.coords.longitude;
-switchScreen("gps","raggio");
-});
-}
-
-// SLIDER
-slider.oninput=function(){
-raggio=this.value;
-valore.innerText=raggio+" km";
-}
-
-// MAPPA
-function vaiMappa(){
-switchScreen("raggio","app");
-
-setTimeout(()=>{
-map=L.map('map',{dragging:false}).setView([40.1,9],8);
-
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-
-// TU SEI QUI
-L.circleMarker([userLat,userLon],{
-radius:10,color:"white",fillColor:"red",fillOpacity:1
-}).addTo(map);
-
-// POI
-caricaPOI();
-
-},200);
-}
-
-// DISTANZA
-function distanza(a,b,c,d){
-let R=6371;
-let dLat=(c-a)*Math.PI/180;
-let dLon=(d-b)*Math.PI/180;
-let x=Math.sin(dLat/2)**2+
-Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dLon/2)**2;
-return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
-}
-
-// POI
-function caricaPOI(){
-
-let menu=document.getElementById("menuPoi");
-menu.innerHTML="";
-
-POI.forEach(p=>{
-
-if(distanza(userLat,userLon,p.lat,p.lon)<=raggio){
-
-let marker=L.circleMarker([p.lat,p.lon],{
-radius:6,color:"blue",fillColor:"blue",fillOpacity:1
-}).addTo(map);
-
-// POPUP
-let wiki=p.nome.replace(/ /g,"_");
-
-marker.bindPopup(`
-<b>${p.nome}</b><br><br>
-<a href="https://it.wikipedia.org/wiki/${wiki}" target="_blank">Wikipedia</a><br><br>
-<a href="https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lon}" target="_blank">Portami qui</a>
-`);
-
-// MENU
-let div=document.createElement("div");
-div.innerText=p.nome;
-div.onclick=()=>map.setView([p.lat,p.lon],14);
-menu.appendChild(div);
-
-}
-
-});
-}
-
-// MENU
-function toggleMenu(){
-let m=document.getElementById("menuPoi");
-m.style.display = m.style.display==="none"?"block":"none";
-}
-
-</script>
+<script src="app.js"></script>
 
 </body>
 </html>
