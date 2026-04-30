@@ -11,14 +11,11 @@
 <style>
 body { margin:0; font-family: Arial; }
 
-/* STEP 1 */
-#step1 {
-    text-align:center;
-    padding:20px;
-}
-
 /* MAP */
-#map { height:75vh; }
+#map { height:70vh; }
+
+/* STEP */
+#step1 { text-align:center; padding:20px; }
 
 /* BUTTON */
 #markerBtn {
@@ -56,20 +53,25 @@ body { margin:0; font-family: Arial; }
     padding:10px;
 }
 
-/* RSS */
-.rss {
+/* FOOTER */
+.footer {
     position:fixed;
     bottom:0;
     width:100%;
+}
+
+/* RSS */
+.rss {
     background:#000;
     color:#fff;
     overflow:hidden;
+    font-size:13px;
 }
 
 .rss-track {
     white-space:nowrap;
-    animation:scroll 45s linear infinite;
-    padding:6px;
+    animation:scroll 40s linear infinite;
+    padding:4px;
 }
 
 @keyframes scroll {
@@ -79,11 +81,11 @@ body { margin:0; font-family: Arial; }
 
 /* LOGO */
 .logo {
-    position:fixed;
-    bottom:30px;
-    width:100%;
     text-align:center;
-    font-size:10px;
+    font-size:11px;
+    background:#000;
+    color:#fff;
+    padding:4px;
 }
 
 /* POI */
@@ -140,12 +142,24 @@ body { margin:0; font-family: Arial; }
 <button id="markerBtn" onclick="toggleMenu()">+</button>
 <div id="poiMenu"></div>
 
-<div class="rss">
-<div class="rss-track" id="rssEvents"></div>
-</div>
+<!-- FOOTER -->
+<div class="footer">
 
-<div class="logo">
-<b>PASSAMONTI</b>_COMMUNICATION
+    <!-- RSS EVENTI -->
+    <div class="rss">
+        <div class="rss-track" id="rssEvents"></div>
+    </div>
+
+    <!-- RSS NUMERI -->
+    <div class="rss">
+        <div class="rss-track" id="rssContacts"></div>
+    </div>
+
+    <!-- LOGO -->
+    <div class="logo">
+        <b>PASSAMONTI</b>_COMMUNICATION
+    </div>
+
 </div>
 
 </div>
@@ -163,7 +177,7 @@ let events = [];
 let markers = [];
 
 /* SLIDER */
-document.getElementById("radius").oninput = function(){
+document.getElementById("radius").oninput=function(){
 document.getElementById("radiusValue").innerText=this.value+" km";
 }
 
@@ -191,9 +205,19 @@ document.getElementById("mapScreen").classList.remove("hidden");
 loadData();
 }
 
-/* DATI (INCOLLA QUI I CSV COME PRIMA) */
-let csvPOI = `NOME,CATEGORIA,LAT,LON`;
-let csvEVENTI = `TITOLO,LUOGO,DATA`;
+/* =========================
+   🔥 INCOLLA QUI I TUOI POI
+   ========================= */
+let csvPOI = `
+NOME,CATEGORIA,LAT,LON
+`;
+
+/* =========================
+   🔥 INCOLLA QUI EVENTI
+   ========================= */
+let csvEVENTI = `
+TITOLO,LUOGO,DATA
+`;
 
 /* PARSER */
 function parseCSV(csv){
@@ -229,6 +253,7 @@ data:x.data
 initMap();
 loadPOI();
 loadEvents();
+loadContacts();
 
 setInterval(refreshPosition,300000);
 }
@@ -288,16 +313,22 @@ document.getElementById("poiMenu").appendChild(item);
 createDot(userLat,userLon,"user","TU SEI QUI");
 }
 
+/* EVENTS */
+function loadEvents(){
+document.getElementById("rssEvents").innerText =
+events.map(e=>`${e.titolo} - ${e.luogo} (${e.data})`).join(" ✦ ");
+}
+
+/* NUMERI */
+function loadContacts(){
+document.getElementById("rssContacts").innerText =
+"📞 112 ✦ 📞 118 ✦ 📞 1515 ✦ 📞 INFOPOINT";
+}
+
 /* MENU */
 function toggleMenu(){
 let m=document.getElementById("poiMenu");
 m.style.display=m.style.display==="block"?"none":"block";
-}
-
-/* EVENTS */
-function loadEvents(){
-document.getElementById("rssEvents").innerText=
-events.map(e=>`${e.titolo} - ${e.luogo} (${e.data})`).join(" ✦ ");
 }
 
 /* REFRESH */
