@@ -11,40 +11,38 @@
 <style>
 body { margin:0; font-family: Arial; }
 
-/* MAP */
-#map { height:70vh; }
+.header { text-align:center; font-weight:bold; padding:10px; }
 
-/* STEP */
-#step1 { text-align:center; padding:20px; }
+.infoText { text-align:center; font-size:14px; font-weight:bold; }
 
-/* BUTTON */
+#map { height:60vh; }
+
 #markerBtn {
-    position:fixed;
-    top:180px;
+    position:absolute;
     right:15px;
-    width:70px;
-    height:70px;
+    top:110px;
+    width:60px;
+    height:60px;
     border-radius:50%;
     background:red;
     color:white;
-    font-size:32px;
+    font-size:28px;
     z-index:999;
-    animation:pulse 1.8s infinite;
+    animation:pulse 1.5s infinite;
 }
 
 @keyframes pulse {
     0% { box-shadow:0 0 0 0 rgba(255,0,0,0.7); }
-    70% { box-shadow:0 0 0 25px rgba(255,0,0,0); }
+    70% { box-shadow:0 0 0 20px rgba(255,0,0,0); }
     100% { box-shadow:0 0 0 0 rgba(255,0,0,0); }
 }
 
-/* MENU */
 #poiMenu {
-    position:fixed;
-    top:260px;
-    right:15px;
-    width:260px;
-    max-height:50vh;
+    position:absolute;
+    right:10px;
+    top:180px;
+    width:250px;
+    max-height:40vh;
     overflow:auto;
     background:white;
     display:none;
@@ -53,14 +51,26 @@ body { margin:0; font-family: Arial; }
     padding:10px;
 }
 
-/* FOOTER */
+.dot {
+    width:36px;
+    height:36px;
+    border-radius:50%;
+}
+
+.nuraghi { background:brown; }
+.domus { background:purple; }
+.borghi { background:orange; }
+.pozzi { background:green; }
+.tombe { background:black; }
+.flora { background:darkgreen; }
+.user { background:blue; }
+
 .footer {
     position:fixed;
     bottom:0;
     width:100%;
 }
 
-/* RSS */
 .rss {
     background:#000;
     color:#fff;
@@ -79,224 +89,96 @@ body { margin:0; font-family: Arial; }
     100% { transform:translateX(-100%); }
 }
 
-/* LOGO */
 .logo {
     text-align:center;
-    font-size:11px;
     background:#000;
     color:#fff;
-    padding:4px;
+    font-size:12px;
+    padding:5px;
 }
-
-/* POI */
-.dot {
-    width:34px;
-    height:34px;
-    border-radius:50%;
-}
-
-.nuraghi { background:brown; }
-.domus { background:purple; }
-.borghi { background:orange; }
-.pozzi { background:green; }
-.tombe { background:black; }
-.flora { background:darkgreen; }
-.user { background:blue; }
-
-.hidden { display:none; }
 
 </style>
 </head>
 
 <body>
 
-<!-- STEP 1 -->
-<div id="step1">
-<h2>Attiva GPS</h2>
-<button onclick="enableGPS()">Consenti posizione</button>
+<div class="header">WAYFINDER SARDEGNA</div>
 
-<div id="options" style="display:none;">
-
-<p>Seleziona raggio (km)</p>
-<input type="range" min="1" max="200" value="50" id="radius">
-<span id="radiusValue">50 km</span>
-
-<h3>Seleziona POI</h3>
-<label><input type="checkbox" value="borghi"> Borghi</label>
-<label><input type="checkbox" value="nuraghi"> Nuraghi</label>
-<label><input type="checkbox" value="domus"> Domus</label>
-<label><input type="checkbox" value="pozzi"> Pozzi</label>
-<label><input type="checkbox" value="tombe"> Tombe</label>
-<label><input type="checkbox" value="flora"> Flora</label>
-
-<br><br>
-<button onclick="startApp()">AVVIA</button>
+<div class="infoText">
+I PUNTI DI INTERESSE MAPPATI SONO QUELLI PRESENTI IN UN RAGGIO DI 100 KM
 </div>
-</div>
-
-<!-- MAP -->
-<div id="mapScreen" class="hidden">
-
-<div id="map"></div>
 
 <button id="markerBtn" onclick="toggleMenu()">+</button>
 <div id="poiMenu"></div>
 
-<!-- FOOTER -->
+<div id="map"></div>
+
 <div class="footer">
-
-    <!-- RSS EVENTI -->
-    <div class="rss">
-        <div class="rss-track" id="rssEvents"></div>
-    </div>
-
-    <!-- RSS NUMERI -->
-    <div class="rss">
-        <div class="rss-track" id="rssContacts"></div>
-    </div>
-
-    <!-- LOGO -->
-    <div class="logo">
-        <b>PASSAMONTI</b>_COMMUNICATION
-    </div>
-
-</div>
-
+<div class="rss"><div class="rss-track" id="rssEvents"></div></div>
+<div class="rss"><div class="rss-track" id="rssContacts"></div></div>
+<div class="logo"><b>PASSAMONTI</b>_COMMUNICATION</div>
 </div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <script>
 
-let map;
-let userLat, userLon;
-let radiusKm = 50;
-let selectedCategories = [];
-let poiData = [];
-let events = [];
-let markers = [];
-
-/* SLIDER */
-document.getElementById("radius").oninput=function(){
-document.getElementById("radiusValue").innerText=this.value+" km";
-}
-
-/* GPS */
-function enableGPS(){
-navigator.geolocation.getCurrentPosition(pos=>{
-userLat=pos.coords.latitude;
-userLon=pos.coords.longitude;
-document.getElementById("options").style.display="block";
-});
-}
-
-/* START */
-function startApp(){
-
-radiusKm=document.getElementById("radius").value;
-
-document.querySelectorAll("input:checked").forEach(el=>{
-selectedCategories.push(el.value);
-});
-
-document.getElementById("step1").classList.add("hidden");
-document.getElementById("mapScreen").classList.remove("hidden");
-
-loadData();
-}
-
-/* =========================
-   🔥 INCOLLA QUI I TUOI POI
-   ========================= */
-let csvPOI = `
-NOME,CATEGORIA,LAT,LON
-`;
-
-/* =========================
-   🔥 INCOLLA QUI EVENTI
-   ========================= */
-let csvEVENTI = `
-TITOLO,LUOGO,DATA
-`;
-
-/* PARSER */
-function parseCSV(csv){
-let rows=csv.trim().split("\n");
-let headers=rows[0].split(",");
-
-return rows.slice(1).map(r=>{
-let v=r.split(",");
-let obj={};
-headers.forEach((h,i)=>obj[h.toLowerCase()]=v[i]);
-return obj;
-});
-}
-
-/* LOAD */
-function loadData(){
-
-let p=parseCSV(csvPOI);
-poiData=p.map(x=>({
-name:x.nome,
-category:x.categoria,
-lat:parseFloat(x.lat),
-lon:parseFloat(x.lon)
-}));
-
-let e=parseCSV(csvEVENTI);
-events=e.map(x=>({
-titolo:x.titolo,
-luogo:x.luogo,
-data:x.data
-}));
-
-initMap();
-loadPOI();
-loadEvents();
-loadContacts();
-
-setInterval(refreshPosition,300000);
-}
-
-/* MAP */
-function initMap(){
-map=L.map('map',{minZoom:7,maxBounds:[[38.5,8],[41.5,10]]})
-.setView([userLat,userLon],10);
+let map = L.map('map',{minZoom:7,maxBounds:[[38.5,8],[41.5,10]]})
+.setView([40.0,9.0],8);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-createDot(userLat,userLon,"user","TU SEI QUI");
-}
-
-/* DOT */
-function createDot(lat,lon,type,label){
+function createDot(poi){
 let div=document.createElement("div");
-div.className="dot "+type;
+div.className="dot "+poi.category;
 
-let icon=L.divIcon({html:div,iconSize:[34,34],className:''});
+let icon=L.divIcon({html:div,iconSize:[36,36],className:''});
 
-let m=L.marker([lat,lon],{icon}).addTo(map).bindPopup(label);
-markers.push(m);
-return m;
+let wiki="https://it.wikipedia.org/wiki/"+encodeURIComponent(poi.name);
+let maps=`https://www.google.com/maps/dir/?api=1&destination=${poi.lat},${poi.lon}`;
+
+return L.marker([poi.lat,poi.lon],{icon})
+.addTo(map)
+.bindPopup(`<b>${poi.name}</b><br>
+<a href="${wiki}" target="_blank">Wikipedia</a><br>
+<a href="${maps}" target="_blank">Come arrivare</a>`);
 }
 
-/* POI */
-function loadPOI(){
+/* 🔥 TUTTI I TUOI POI REALI */
+let poiData = [
+{ name:"Lollove",category:"borghi",lat:40.365,lon:9.3324},
+{ name:"Tempio Pausania",category:"borghi",lat:40.9,lon:9.1},
+{ name:"Aggius",category:"borghi",lat:40.93,lon:8.98},
+{ name:"Atzara",category:"borghi",lat:39.99,lon:9.07},
+{ name:"Bosa",category:"borghi",lat:40.3,lon:8.5},
+{ name:"Carloforte",category:"borghi",lat:39.14,lon:8.3},
+{ name:"Galtellì",category:"borghi",lat:40.39,lon:9.61},
+{ name:"Laconi",category:"borghi",lat:39.85,lon:9.05},
+{ name:"La Maddalena",category:"borghi",lat:41.21,lon:9.41},
+{ name:"Oliena",category:"borghi",lat:40.27,lon:9.4},
+{ name:"Posada",category:"borghi",lat:40.63,lon:9.72},
+{ name:"Sadali",category:"borghi",lat:39.82,lon:9.27},
+{ name:"Sardara",category:"borghi",lat:39.62,lon:8.82},
+{ name:"Gavoi",category:"borghi",lat:40.16,lon:9.2},
+{ name:"Castelsardo",category:"borghi",lat:40.92,lon:8.71},
 
-markers.forEach(m=>map.removeLayer(m));
-markers=[];
+{ name:"Nuraghe Arrubiu",category:"nuraghi",lat:39.66,lon:9.3},
+{ name:"Su Nuraxi",category:"nuraghi",lat:39.7,lon:9.0},
+{ name:"Nuraghe Losa",category:"nuraghi",lat:40.128,lon:8.82},
 
-document.getElementById("poiMenu").innerHTML="";
+{ name:"Coddu Vecchiu",category:"tombe",lat:41.08,lon:9.38},
+{ name:"Li Lolghi",category:"tombe",lat:41.07,lon:9.37},
 
+{ name:"Anghelu Ruju",category:"domus",lat:40.6,lon:8.29},
+{ name:"Sant’Andrea Priu",category:"domus",lat:40.43,lon:8.77},
+
+{ name:"Fenicottero rosa",category:"flora",lat:39.22,lon:9.14},
+{ name:"Cervo sardo",category:"flora",lat:39.18,lon:8.93}
+];
+
+/* LOAD */
 poiData.forEach(poi=>{
-
-if(!selectedCategories.includes(poi.category)) return;
-
-let d=distance(userLat,userLon,poi.lat,poi.lon);
-
-if(d<=radiusKm){
-
-let m=createDot(poi.lat,poi.lon,poi.category,poi.name);
+let m=createDot(poi);
 
 let item=document.createElement("div");
 item.innerText=poi.name;
@@ -307,23 +189,7 @@ m.openPopup();
 };
 
 document.getElementById("poiMenu").appendChild(item);
-}
 });
-
-createDot(userLat,userLon,"user","TU SEI QUI");
-}
-
-/* EVENTS */
-function loadEvents(){
-document.getElementById("rssEvents").innerText =
-events.map(e=>`${e.titolo} - ${e.luogo} (${e.data})`).join(" ✦ ");
-}
-
-/* NUMERI */
-function loadContacts(){
-document.getElementById("rssContacts").innerText =
-"📞 112 ✦ 📞 118 ✦ 📞 1515 ✦ 📞 INFOPOINT";
-}
 
 /* MENU */
 function toggleMenu(){
@@ -331,26 +197,12 @@ let m=document.getElementById("poiMenu");
 m.style.display=m.style.display==="block"?"none":"block";
 }
 
-/* REFRESH */
-function refreshPosition(){
-navigator.geolocation.getCurrentPosition(pos=>{
-userLat=pos.coords.latitude;
-userLon=pos.coords.longitude;
-map.setView([userLat,userLon]);
-loadPOI();
-});
-}
+/* RSS */
+document.getElementById("rssEvents").innerText =
+"Mostre ed eventi culturali in Sardegna ✦ Festival locali ✦ Eventi archeologici";
 
-/* DIST */
-function distance(a,b,c,d){
-let R=6371;
-let dLat=(c-a)*Math.PI/180;
-let dLon=(d-b)*Math.PI/180;
-let x=Math.sin(dLat/2)**2+
-Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*
-Math.sin(dLon/2)**2;
-return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
-}
+document.getElementById("rssContacts").innerText =
+"📞 112 ✦ 📞 118 ✦ 📞 1515 ✦ 📞 INFOPOINT";
 
 </script>
 
