@@ -4,7 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>WayFinder Sardegna - Step 1</title>
+<title>WayFinder Sardegna</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 
 <style>
 body { margin:0; font-family:Arial; }
@@ -21,115 +23,198 @@ body { margin:0; font-family:Arial; }
 
 /* BOTTONI */
 button {
-  padding:15px 25px;
+  padding:18px 28px;
   font-size:18px;
   border:none;
-  border-radius:10px;
+  border-radius:12px;
   background:black;
   color:white;
+  cursor:pointer;
+}
+
+button:active {
+  transform:scale(0.95);
+  background:#333;
 }
 
 /* FILTRI */
 #filtri {
   display:flex;
   flex-direction:column;
-  gap:10px;
+  gap:12px;
   margin:20px;
 }
 
-label {
-  font-size:16px;
+/* ===== MAPPA ===== */
+
+#app {
+  display:none;
+  flex-direction:column;
+}
+
+/* HEADER */
+#header img {
+  width:100%;
+  height:80px;
+  object-fit:cover;
+}
+
+/* INFO */
+#info {
+  text-align:center;
+  font-weight:bold;
+  padding:8px;
+}
+
+/* MAP */
+#map {
+  height:60vh;
+}
+
+/* MARKER + */
+#menuBtn {
+  position:absolute;
+  top:120px;
+  right:20px;
+  width:70px;
+  height:70px;
+  border-radius:50%;
+  background:red;
+  color:white;
+  font-size:30px;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  cursor:pointer;
+  z-index:1000;
+}
+
+/* MENU */
+#menuPoi {
+  position:absolute;
+  top:200px;
+  right:20px;
+  width:250px;
+  background:white;
+  display:none;
+  border-radius:10px;
+  padding:10px;
 }
 </style>
 </head>
 
 <body>
 
-<!-- SCREEN 1 -->
+<!-- STEP 1 -->
 <div id="start" class="screen active">
   <h2>WayFinder Sardegna</h2>
   <button onclick="vaiGPS()">Avvia</button>
 </div>
 
-<!-- SCREEN 2 -->
 <div id="gps" class="screen">
-  <p>Consenti l'utilizzo del GPS</p>
+  <p>Consenti utilizzo GPS</p>
   <button onclick="attivaGPS()">Consenti</button>
 </div>
 
-<!-- SCREEN 3 -->
 <div id="filtriScreen" class="screen">
-  <h3>Seleziona i punti di interesse</h3>
+  <h3>Seleziona i POI</h3>
 
   <div id="filtri">
     <label><input type="checkbox" id="all"> Tutti</label>
     <label><input type="checkbox" value="nuraghe"> Nuraghi</label>
     <label><input type="checkbox" value="borgo"> Borghi</label>
-    <label><input type="checkbox" value="domus"> Domus de Janas</label>
-    <label><input type="checkbox" value="pozzi"> Pozzi Sacri</label>
-    <label><input type="checkbox" value="tombe"> Tombe dei Giganti</label>
-    <label><input type="checkbox" value="fauna"> Flora / Fauna</label>
+    <label><input type="checkbox" value="domus"> Domus</label>
   </div>
 
-  <button onclick="confermaSelezione()">Conferma</button>
+  <button onclick="entraMappa()">Vai alla mappa</button>
 </div>
+
+<!-- STEP 2 MAPPA -->
+<div id="app">
+
+<div id="header">
+  <img src="header-wayfinder.png">
+</div>
+
+<div id="info">
+I punti di interesse mappati sono quelli presenti in un raggio di 1 km
+</div>
+
+<div id="menuBtn" onclick="toggleMenu()">+</div>
+
+<div id="menuPoi">
+  Menu POI (placeholder)
+</div>
+
+<div id="map"></div>
+
+</div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <script>
 
-// ===== NAVIGAZIONE =====
-function switchScreen(from, to){
+// ===== NAV =====
+function switchScreen(from,to){
   document.getElementById(from).classList.remove("active");
   document.getElementById(to).classList.add("active");
 }
 
-// STEP 1 → STEP 2
+// STEP 1
 function vaiGPS(){
   switchScreen("start","gps");
 }
 
-// GPS
 function attivaGPS(){
-
   navigator.geolocation.getCurrentPosition(
     (pos)=>{
-      // salviamo posizione
       window.userLat = pos.coords.latitude;
       window.userLon = pos.coords.longitude;
-
       switchScreen("gps","filtriScreen");
     },
-    ()=>{
-      alert("Devi autorizzare il GPS per continuare");
-    }
+    ()=>alert("Attiva il GPS")
   );
 }
 
-// FILTRI LOGICA "TUTTI"
+// FILTRI
 document.getElementById("all").addEventListener("change", function(){
-  let checked = this.checked;
-
   document.querySelectorAll("#filtri input").forEach(cb=>{
-    if(cb.id !== "all"){
-      cb.checked = checked;
-    }
+    if(cb.id !== "all") cb.checked = this.checked;
   });
 });
 
-// CONFERMA (per ora solo test)
-function confermaSelezione(){
+// STEP 2
+function entraMappa(){
 
-  let selezionati = [...document.querySelectorAll("#filtri input:checked")]
-    .map(x=>x.value)
-    .filter(v=>v);
+  document.getElementById("filtriScreen").classList.remove("active");
+  document.getElementById("app").style.display = "flex";
 
-  if(selezionati.length === 0){
-    alert("Seleziona almeno un tipo di POI");
-    return;
+  // FIX LEAFLET (fondamentale)
+  setTimeout(initMap,200);
+}
+
+// MAPPA
+function initMap(){
+
+  let map = L.map('map',{dragging:false}).setView([40.1,9],8);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+  // TU SEI QUI
+  if(window.userLat){
+    L.circleMarker([userLat,userLon],{
+      radius:10,
+      fillColor:"red",
+      color:"white",
+      weight:3
+    }).addTo(map).bindPopup("Tu sei qui");
   }
+}
 
-  console.log("POI selezionati:", selezionati);
-
-  alert("STEP 1 OK - pronto per la mappa");
+// MENU +
+function toggleMenu(){
+  let m = document.getElementById("menuPoi");
+  m.style.display = m.style.display==="none"?"block":"none";
 }
 
 </script>
