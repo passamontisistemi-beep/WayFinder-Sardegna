@@ -1,391 +1,125 @@
+```html
 <!DOCTYPE html>
 <html lang="it">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>WayFinder Sardegna</title>
+  <meta charset="UTF-8">
+  <title>Mappa Nuraghi Sardegna</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 
-<style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:Arial}
-
-body{
-background:#dfe7ee;
-display:flex;
-justify-content:center;
-align-items:center;
-min-height:100vh;
-padding:10px;
-}
-
-#app{
-width:min(100vw,390px);
-aspect-ratio:9/16;
-background:#fff;
-border-radius:28px;
-overflow:hidden;
-display:flex;
-flex-direction:column;
-position:relative;
-}
-
-/* HEADER */
-#header img{width:100%}
-
-#topBar{
-padding:8px;
-text-align:center;
-font-weight:800;
-font-size:13px;
-}
-
-/* MAP */
-#mapWrap{flex:1;position:relative}
-#map{width:100%;height:100%}
-
-/* BUTTON */
-#plusBtn{
-position:absolute;
-top:60px;
-right:12px;
-width:60px;
-height:60px;
-border-radius:50%;
-background:red;
-color:#fff;
-font-size:38px;
-z-index:2000;
-animation:pulse 1.2s infinite;
-box-shadow:0 8px 20px rgba(0,0,0,0.4);
-}
-
-@keyframes pulse{
-0%{transform:scale(1)}
-50%{transform:scale(1.1)}
-100%{transform:scale(1)}
-}
-
-/* LEGEND */
-#legend{
-position:absolute;
-bottom:10px;
-left:10px;
-background:white;
-padding:6px;
-border-radius:8px;
-font-size:10px;
-z-index:1000;
-}
-
-/* PANEL */
-#poiPanel{
-position:absolute;
-top:80px;
-left:10px;
-right:10px;
-background:#fff;
-border-radius:16px;
-display:none;
-max-height:55%;
-overflow:auto;
-z-index:999;
-padding:10px;
-}
-
-.filter{
-display:flex;
-flex-wrap:wrap;
-gap:6px;
-margin-bottom:8px;
-}
-.filter button{
-flex:1;
-padding:6px;
-border:none;
-border-radius:8px;
-background:#eee;
-font-size:11px;
-}
-.filter button.active{
-background:black;
-color:white;
-}
-
-.poiItem{
-padding:8px;
-border-bottom:1px solid #eee;
-cursor:pointer;
-font-weight:600;
-}
-
-/* CARD */
-#detailCard{
-position:absolute;
-top:25%;
-left:10px;
-right:10px;
-background:#fff;
-border-radius:16px;
-padding:12px;
-display:none;
-z-index:1000;
-}
-.btn{width:100%;padding:10px;margin-top:6px}
-
-/* FOOTER */
-footer{
-height:110px;
-background:#111;
-color:#fff;
-display:flex;
-flex-direction:column;
-justify-content:center;
-text-align:center;
-}
-
-.rss{height:26px;overflow:hidden;}
-.track{animation:scroll 30s linear infinite;}
-@keyframes scroll{
-0%{transform:translateX(100%)}
-100%{transform:translateX(-100%)}
-}
-
-.brand{
-font-size:16px;
-font-weight:900;
-}
-
-/* POPUP */
-.overlay{
-position:absolute;
-inset:0;
-background:rgba(0,0,0,.7);
-display:flex;
-justify-content:center;
-align-items:center;
-z-index:2000;
-}
-
-.popup{
-background:#fff;
-padding:20px;
-border-radius:16px;
-text-align:center;
-}
-
-.hidden{display:none}
-</style>
+  <style>
+    body { margin:0; }
+    #map { height:100vh; }
+  </style>
 </head>
-
 <body>
-
-<div id="app">
-
-<!-- GPS -->
-<div id="gpsModal" class="overlay">
-<div class="popup">
-<h3>Consenti GPS</h3>
-<button onclick="enableGPS()">Consenti</button>
-</div>
-</div>
-
-<!-- RAGGIO -->
-<div id="radiusModal" class="overlay hidden">
-<div class="popup">
-<p>Seleziona raggio</p>
-<input type="range" min="1" max="200" value="50" id="radius">
-<p><span id="radiusValue">50</span> km</p>
-<button onclick="startApp()">Avvia</button>
-</div>
-</div>
-
-<div id="header">
-<img src="header-wayfinder.png">
-</div>
-
-<div id="topBar">
-POI entro <span id="raggioTxt">--</span> KM
-</div>
-
-<div id="mapWrap">
 
 <div id="map"></div>
 
-<button id="plusBtn">+</button>
-
-<div id="legend">
-🔴 Nuraghi<br>
-🟠 Borghi<br>
-🟤 Domus<br>
-🟡 Tombe<br>
-🟢 Fauna
-</div>
-
-<div id="poiPanel">
-
-<div class="filter">
-<button onclick="setFilter('all')" class="active">Tutti</button>
-<button onclick="setFilter('borghi')">Borghi</button>
-<button onclick="setFilter('nuraghi')">Nuraghi</button>
-<button onclick="setFilter('domus')">Domus</button>
-<button onclick="setFilter('tombe')">Tombe</button>
-<button onclick="setFilter('fauna')">Fauna</button>
-</div>
-
-<div id="poiList"></div>
-
-</div>
-
-</div>
-
-<div id="detailCard">
-<h3 id="poiTitle"></h3>
-<button class="btn" id="wikiBtn">Wikipedia</button>
-<button class="btn" id="goBtn">Come arrivare</button>
-<button class="btn" onclick="closeCard()">Chiudi</button>
-</div>
-
-<footer>
-<div class="rss"><div class="track">Eventi culturali Sardegna ✦ Mostre ✦ Festival</div></div>
-<div class="rss"><div class="track">📞 112 ✦ 📞 118 ✦ 📞 INFOPOINT</div></div>
-<div class="brand"><b>PASSAMONTI</b>_COMMUNICATION</div>
-</footer>
-
-</div>
-
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <script>
 
-let map=L.map("map").setView([40,9],8);
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+// ======================
+// CONFIG
+// ======================
+const raggioKm = 50; // cambia qui il raggio
 
-let userLat=40,userLng=9;
-let poiLayer=L.layerGroup().addTo(map);
-let filter="all";
+// ======================
+// MAPPA
+// ======================
+const map = L.map('map').setView([40.0, 9.0], 8);
 
-/* POI COMPLETI */
-let poiData=[
-{name:"Bosa",cat:"borghi",lat:40.3,lon:8.5},
-{name:"Lollove",cat:"borghi",lat:40.365,lon:9.3324},
-{name:"Nuraghe Arrubiu",cat:"nuraghi",lat:39.66,lon:9.3},
-{name:"Su Nuraxi",cat:"nuraghi",lat:39.7,lon:9.0},
-{name:"Anghelu Ruju",cat:"domus",lat:40.6,lon:8.29},
-{name:"Coddu Vecchiu",cat:"tombe",lat:41.08,lon:9.38},
-{name:"Fenicottero rosa",cat:"fauna",lat:39.22,lon:9.14}
+// TILE
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 18
+}).addTo(map);
+
+// ======================
+// DATI NURAGHI (TUTTI)
+// ======================
+const nuraghi = [
+  {"id":1,"nome":"Nuraghe Majori","lat":40.9,"lng":9.1},
+  {"id":2,"nome":"Nuraghe Palmavera","lat":40.557,"lng":8.319},
+  {"id":3,"nome":"Complesso di Romanzesu","lat":40.482,"lng":9.375},
+  {"id":4,"nome":"Santu Antine","lat":40.421,"lng":8.735},
+  {"id":5,"nome":"Nuraghe Appiu","lat":40.502,"lng":8.58},
+  {"id":6,"nome":"Serra Orrios","lat":40.292,"lng":9.588},
+  {"id":7,"nome":"Nuraghe Orolo","lat":40.268,"lng":8.84},
+  {"id":8,"nome":"Sa Sedda e Sos Carros","lat":40.273,"lng":9.405},
+  {"id":9,"nome":"Nuraghe Losa","lat":40.128,"lng":8.82},
+  {"id":10,"nome":"Complesso Santa Cristina","lat":40.064,"lng":8.78},
+  {"id":11,"nome":"S’Arcu e Is Forros","lat":40.0,"lng":9.45},
+  {"id":12,"nome":"Nuraghe Is Paras","lat":39.74,"lng":9.1},
+  {"id":13,"nome":"Su Nuraxi","lat":39.7,"lng":9.0},
+  {"id":14,"nome":"Complesso Santa Vittoria","lat":39.71,"lng":9.1},
+  {"id":15,"nome":"Nuraghe Arrubiu","lat":39.66,"lng":9.3},
+  {"id":16,"nome":"Nuraghe Cuccurada","lat":39.66,"lng":8.74},
+  {"id":17,"nome":"Nuraghe Genna Maria","lat":39.63,"lng":8.85},
+  {"id":18,"nome":"Su Mulinu","lat":39.63,"lng":8.99},
+  {"id":19,"nome":"Nuraghe Seruci","lat":39.25,"lng":8.42},
+  {"id":20,"nome":"Nuraghe Diana","lat":39.23,"lng":9.24}
 ];
 
-/* GPS */
-function enableGPS(){
-navigator.geolocation.getCurrentPosition(pos=>{
-userLat=pos.coords.latitude;
-userLng=pos.coords.longitude;
-document.getElementById("gpsModal").classList.add("hidden");
-document.getElementById("radiusModal").classList.remove("hidden");
-});
+// ======================
+// FUNZIONE DISTANZA (km)
+// ======================
+function distanzaKm(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) *
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
 }
 
-/* SLIDER */
-document.getElementById("radius").oninput=function(){
-document.getElementById("radiusValue").innerText=this.value;
-}
+// ======================
+// POSIZIONE CENTRO (TU SEI QUI)
+// ======================
+const centro = map.getCenter();
 
-/* START */
-function startApp(){
-let r=document.getElementById("radius").value;
-document.getElementById("raggioTxt").innerText=r;
-document.getElementById("radiusModal").classList.add("hidden");
+// Marker centrale
+const markerCentro = L.marker(centro).addTo(map)
+  .bindPopup("📍 Tu sei qui")
+  .openPopup();
 
-drawUser();
-loadPOI();
-}
+// Cerchio raggio
+const cerchio = L.circle(centro, {
+  radius: raggioKm * 1000,
+  color: 'blue',
+  fillOpacity: 0.1
+}).addTo(map);
 
-/* USER */
-function drawUser(){
-L.circleMarker([userLat,userLng],{
-radius:12,
-color:"red",
-fillColor:"red",
-fillOpacity:1
-}).addTo(map).bindPopup("TU SEI QUI").openPopup();
+// ======================
+// RENDER NURAGHI + LINEE
+// ======================
+nuraghi.forEach(n => {
 
-map.setView([userLat,userLng],10);
-}
+  // marker sempre visibile (NESSUN filtro)
+  const marker = L.marker([n.lat, n.lng]).addTo(map)
+    .bindPopup(n.nome);
 
-/* POI */
-function loadPOI(){
+  // distanza
+  const d = distanzaKm(centro.lat, centro.lng, n.lat, n.lng);
 
-poiLayer.clearLayers();
-document.getElementById("poiList").innerHTML="";
-
-poiData.forEach(p=>{
-
-if(filter!=="all" && p.cat!==filter) return;
-
-let color="#000";
-if(p.cat==="nuraghi") color="red";
-if(p.cat==="borghi") color="orange";
-if(p.cat==="domus") color="brown";
-if(p.cat==="tombe") color="yellow";
-if(p.cat==="fauna") color="green";
-
-let m=L.circleMarker([p.lat,p.lon],{
-radius:10,
-color:"#000",
-weight:2,
-fillColor:color,
-fillOpacity:1
-}).addTo(poiLayer);
-
-m.on("click",()=>openDetail(p));
-
-let row=document.createElement("div");
-row.className="poiItem";
-row.innerText=p.name;
-
-row.onclick=function(){
-map.setView([p.lat,p.lon],13);
-};
-
-document.getElementById("poiList").appendChild(row);
+  // linea SOLO se dentro il raggio
+  if (d <= raggioKm) {
+    L.polyline([
+      [centro.lat, centro.lng],
+      [n.lat, n.lng]
+    ], {color: 'red'}).addTo(map);
+  }
 
 });
-}
-
-/* FILTER */
-function setFilter(f){
-filter=f;
-document.querySelectorAll(".filter button").forEach(b=>b.classList.remove("active"));
-event.target.classList.add("active");
-loadPOI();
-}
-
-/* CARD */
-function openDetail(p){
-document.getElementById("poiTitle").innerText=p.name;
-
-document.getElementById("wikiBtn").onclick=function(){
-window.open("https://it.wikipedia.org/wiki/"+encodeURIComponent(p.name));
-};
-
-document.getElementById("goBtn").onclick=function(){
-window.open(`https://www.google.com/maps/dir/${userLat},${userLng}/${p.lat},${p.lon}`);
-};
-
-document.getElementById("detailCard").style.display="block";
-}
-
-function closeCard(){
-document.getElementById("detailCard").style.display="none";
-}
-
-document.getElementById("plusBtn").onclick=function(){
-let p=document.getElementById("poiPanel");
-p.style.display=(p.style.display==="block")?"none":"block";
-};
 
 </script>
 
 </body>
 </html>
+```
