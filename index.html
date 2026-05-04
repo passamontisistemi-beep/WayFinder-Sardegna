@@ -7,113 +7,133 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-sA+4J8bE0p3pP7FpC18JNpD33rDg14O6gGQ3p3p6kL0="
+    crossorigin=""
+  />
 
   <style>
-    body { margin:0; }
-    #map { height:100vh; }
+    html, body {
+      margin: 0;
+      height: 100%;
+    }
+    #map {
+      width: 100%;
+      height: 100%;
+    }
   </style>
 </head>
+
 <body>
 
 <div id="map"></div>
 
 <!-- Leaflet JS -->
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script
+  src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  integrity="sha256-o9N1j7kP5Q5e0siJmq9hw3rrodpAt4EAsC0F2kPzJtk="
+  crossorigin=""
+></script>
 
 <script>
 
 // ======================
 // CONFIG
 // ======================
-const raggioKm = 50; // cambia qui il raggio
+const raggioKm = 50;
 
 // ======================
 // MAPPA
 // ======================
 const map = L.map('map').setView([40.0, 9.0], 8);
 
-// TILE
+// TILE LAYER
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  maxZoom: 18
+  maxZoom: 18,
+  attribution: '© OpenStreetMap'
 }).addTo(map);
 
 // ======================
-// DATI NURAGHI (TUTTI)
+// DATI (20 NURAGHI)
 // ======================
 const nuraghi = [
-  {"id":1,"nome":"Nuraghe Majori","lat":40.9,"lng":9.1},
-  {"id":2,"nome":"Nuraghe Palmavera","lat":40.557,"lng":8.319},
-  {"id":3,"nome":"Complesso di Romanzesu","lat":40.482,"lng":9.375},
-  {"id":4,"nome":"Santu Antine","lat":40.421,"lng":8.735},
-  {"id":5,"nome":"Nuraghe Appiu","lat":40.502,"lng":8.58},
-  {"id":6,"nome":"Serra Orrios","lat":40.292,"lng":9.588},
-  {"id":7,"nome":"Nuraghe Orolo","lat":40.268,"lng":8.84},
-  {"id":8,"nome":"Sa Sedda e Sos Carros","lat":40.273,"lng":9.405},
-  {"id":9,"nome":"Nuraghe Losa","lat":40.128,"lng":8.82},
-  {"id":10,"nome":"Complesso Santa Cristina","lat":40.064,"lng":8.78},
-  {"id":11,"nome":"S’Arcu e Is Forros","lat":40.0,"lng":9.45},
-  {"id":12,"nome":"Nuraghe Is Paras","lat":39.74,"lng":9.1},
-  {"id":13,"nome":"Su Nuraxi","lat":39.7,"lng":9.0},
-  {"id":14,"nome":"Complesso Santa Vittoria","lat":39.71,"lng":9.1},
-  {"id":15,"nome":"Nuraghe Arrubiu","lat":39.66,"lng":9.3},
-  {"id":16,"nome":"Nuraghe Cuccurada","lat":39.66,"lng":8.74},
-  {"id":17,"nome":"Nuraghe Genna Maria","lat":39.63,"lng":8.85},
-  {"id":18,"nome":"Su Mulinu","lat":39.63,"lng":8.99},
-  {"id":19,"nome":"Nuraghe Seruci","lat":39.25,"lng":8.42},
-  {"id":20,"nome":"Nuraghe Diana","lat":39.23,"lng":9.24}
+  {id:1,nome:"Nuraghe Majori",lat:40.9,lng:9.1},
+  {id:2,nome:"Nuraghe Palmavera",lat:40.557,lng:8.319},
+  {id:3,nome:"Complesso di Romanzesu",lat:40.482,lng:9.375},
+  {id:4,nome:"Santu Antine",lat:40.421,lng:8.735},
+  {id:5,nome:"Nuraghe Appiu",lat:40.502,lng:8.58},
+  {id:6,nome:"Serra Orrios",lat:40.292,lng:9.588},
+  {id:7,nome:"Nuraghe Orolo",lat:40.268,lng:8.84},
+  {id:8,nome:"Sa Sedda e Sos Carros",lat:40.273,lng:9.405},
+  {id:9,nome:"Nuraghe Losa",lat:40.128,lng:8.82},
+  {id:10,nome:"Complesso Santa Cristina",lat:40.064,lng:8.78},
+  {id:11,nome:"S’Arcu e Is Forros",lat:40.0,lng:9.45},
+  {id:12,nome:"Nuraghe Is Paras",lat:39.74,lng:9.1},
+  {id:13,nome:"Su Nuraxi",lat:39.7,lng:9.0},
+  {id:14,nome:"Complesso Santa Vittoria",lat:39.71,lng:9.1},
+  {id:15,nome:"Nuraghe Arrubiu",lat:39.66,lng:9.3},
+  {id:16,nome:"Nuraghe Cuccurada",lat:39.66,lng:8.74},
+  {id:17,nome:"Nuraghe Genna Maria",lat:39.63,lng:8.85},
+  {id:18,nome:"Su Mulinu",lat:39.63,lng:8.99},
+  {id:19,nome:"Nuraghe Seruci",lat:39.25,lng:8.42},
+  {id:20,nome:"Nuraghe Diana",lat:39.23,lng:9.24}
 ];
 
 // ======================
-// FUNZIONE DISTANZA (km)
+// DISTANZA (HAVERSINE)
 // ======================
 function distanzaKm(lat1, lon1, lat2, lon2) {
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
+
   const a =
     Math.sin(dLat/2) * Math.sin(dLat/2) +
     Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) *
     Math.sin(dLon/2) * Math.sin(dLon/2);
+
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
   return R * c;
 }
 
 // ======================
-// POSIZIONE CENTRO (TU SEI QUI)
+// CENTRO (TU SEI QUI)
 // ======================
 const centro = map.getCenter();
 
-// Marker centrale
-const markerCentro = L.marker(centro).addTo(map)
+// Marker centro
+const markerCentro = L.marker(centro)
+  .addTo(map)
   .bindPopup("📍 Tu sei qui")
   .openPopup();
 
 // Cerchio raggio
-const cerchio = L.circle(centro, {
+L.circle(centro, {
   radius: raggioKm * 1000,
-  color: 'blue',
+  color: "blue",
   fillOpacity: 0.1
 }).addTo(map);
 
 // ======================
-// RENDER NURAGHI + LINEE
+// RENDER TUTTI I MARKER
 // ======================
 nuraghi.forEach(n => {
 
-  // marker sempre visibile (NESSUN filtro)
-  const marker = L.marker([n.lat, n.lng]).addTo(map)
+  // marker SEMPRE mostrato
+  L.marker([n.lat, n.lng])
+    .addTo(map)
     .bindPopup(n.nome);
 
-  // distanza
+  // linea se dentro raggio
   const d = distanzaKm(centro.lat, centro.lng, n.lat, n.lng);
 
-  // linea SOLO se dentro il raggio
   if (d <= raggioKm) {
     L.polyline([
       [centro.lat, centro.lng],
       [n.lat, n.lng]
-    ], {color: 'red'}).addTo(map);
+    ], { color: "red" }).addTo(map);
   }
 
 });
