@@ -1,145 +1,111 @@
-```html
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="UTF-8">
-  <title>Mappa Nuraghi Sardegna</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>I Giganti della Sardegna</title>
 
-  <!-- Leaflet CSS -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha256-sA+4J8bE0p3pP7FpC18JNpD33rDg14O6gGQ3p3p6kL0="
-    crossorigin=""
-  />
+<style>
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #2f2f2f;
+    color: white;
+    text-align: center;
+}
 
-  <style>
-    html, body {
-      margin: 0;
-      height: 100%;
-    }
-    #map {
-      width: 100%;
-      height: 100%;
-    }
-  </style>
+.container {
+    padding: 20px;
+}
+
+h1 {
+    color: #ffe600;
+    font-size: 40px;
+    line-height: 1.1;
+}
+
+button {
+    width: 80%;
+    padding: 15px;
+    margin: 15px 0;
+    font-size: 20px;
+    border: none;
+    border-radius: 10px;
+    background: #ffe600;
+    color: black;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+#raggioMenu {
+    display: none;
+    background: #444;
+    padding: 15px;
+    border-radius: 10px;
+    width: 80%;
+    margin: 0 auto;
+}
+
+label {
+    display: block;
+    margin: 10px;
+    font-size: 18px;
+}
+
+.footer {
+    margin-top: 30px;
+    font-size: 14px;
+    opacity: 0.7;
+}
+</style>
+
 </head>
 
 <body>
 
-<div id="map"></div>
+<div class="container">
 
-<!-- Leaflet JS -->
-<script
-  src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-  integrity="sha256-o9N1j7kP5Q5e0siJmq9hw3rrodpAt4EAsC0F2kPzJtk="
-  crossorigin=""
-></script>
+    <h1>I Giganti<br>della Sardegna</h1>
+
+    <button onclick="attivaGPS()">AUTORIZZA GPS</button>
+
+    <button onclick="toggleRaggio()">RAGGIO RICERCA</button>
+
+    <div id="raggioMenu">
+        <label><input type="radio" name="raggio" value="50"> 50 Km</label>
+        <label><input type="radio" name="raggio" value="100"> 100 Km</label>
+        <label><input type="radio" name="raggio" value="tutti"> Tutti</label>
+    </div>
+
+    <div id="status" style="margin-top:15px;"></div>
+
+    <div class="footer">PASSAMONTI COMMUNICATION</div>
+
+</div>
 
 <script>
 
-// ======================
-// CONFIG
-// ======================
-const raggioKm = 50;
-
-// ======================
-// MAPPA
-// ======================
-const map = L.map('map').setView([40.0, 9.0], 8);
-
-// TILE LAYER
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  maxZoom: 18,
-  attribution: '© OpenStreetMap'
-}).addTo(map);
-
-// ======================
-// DATI (20 NURAGHI)
-// ======================
-const nuraghi = [
-  {id:1,nome:"Nuraghe Majori",lat:40.9,lng:9.1},
-  {id:2,nome:"Nuraghe Palmavera",lat:40.557,lng:8.319},
-  {id:3,nome:"Complesso di Romanzesu",lat:40.482,lng:9.375},
-  {id:4,nome:"Santu Antine",lat:40.421,lng:8.735},
-  {id:5,nome:"Nuraghe Appiu",lat:40.502,lng:8.58},
-  {id:6,nome:"Serra Orrios",lat:40.292,lng:9.588},
-  {id:7,nome:"Nuraghe Orolo",lat:40.268,lng:8.84},
-  {id:8,nome:"Sa Sedda e Sos Carros",lat:40.273,lng:9.405},
-  {id:9,nome:"Nuraghe Losa",lat:40.128,lng:8.82},
-  {id:10,nome:"Complesso Santa Cristina",lat:40.064,lng:8.78},
-  {id:11,nome:"S’Arcu e Is Forros",lat:40.0,lng:9.45},
-  {id:12,nome:"Nuraghe Is Paras",lat:39.74,lng:9.1},
-  {id:13,nome:"Su Nuraxi",lat:39.7,lng:9.0},
-  {id:14,nome:"Complesso Santa Vittoria",lat:39.71,lng:9.1},
-  {id:15,nome:"Nuraghe Arrubiu",lat:39.66,lng:9.3},
-  {id:16,nome:"Nuraghe Cuccurada",lat:39.66,lng:8.74},
-  {id:17,nome:"Nuraghe Genna Maria",lat:39.63,lng:8.85},
-  {id:18,nome:"Su Mulinu",lat:39.63,lng:8.99},
-  {id:19,nome:"Nuraghe Seruci",lat:39.25,lng:8.42},
-  {id:20,nome:"Nuraghe Diana",lat:39.23,lng:9.24}
-];
-
-// ======================
-// DISTANZA (HAVERSINE)
-// ======================
-function distanzaKm(lat1, lon1, lat2, lon2) {
-  const R = 6371;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-
-  const a =
-    Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) *
-    Math.sin(dLon/2) * Math.sin(dLon/2);
-
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  return R * c;
+function toggleRaggio() {
+    let menu = document.getElementById("raggioMenu");
+    menu.style.display = (menu.style.display === "none") ? "block" : "none";
 }
 
-// ======================
-// CENTRO (TU SEI QUI)
-// ======================
-const centro = map.getCenter();
-
-// Marker centro
-const markerCentro = L.marker(centro)
-  .addTo(map)
-  .bindPopup("📍 Tu sei qui")
-  .openPopup();
-
-// Cerchio raggio
-L.circle(centro, {
-  radius: raggioKm * 1000,
-  color: "blue",
-  fillOpacity: 0.1
-}).addTo(map);
-
-// ======================
-// RENDER TUTTI I MARKER
-// ======================
-nuraghi.forEach(n => {
-
-  // marker SEMPRE mostrato
-  L.marker([n.lat, n.lng])
-    .addTo(map)
-    .bindPopup(n.nome);
-
-  // linea se dentro raggio
-  const d = distanzaKm(centro.lat, centro.lng, n.lat, n.lng);
-
-  if (d <= raggioKm) {
-    L.polyline([
-      [centro.lat, centro.lng],
-      [n.lat, n.lng]
-    ], { color: "red" }).addTo(map);
-  }
-
-});
+function attivaGPS() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                document.getElementById("status").innerHTML = "GPS ATTIVO ✅";
+            },
+            function(error) {
+                document.getElementById("status").innerHTML = "Permesso negato ❌";
+            }
+        );
+    } else {
+        document.getElementById("status").innerHTML = "GPS non supportato";
+    }
+}
 
 </script>
 
 </body>
 </html>
-```
